@@ -1,0 +1,1366 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "proto/devicebridge/v1/common.proto",
+    "version": "version not set"
+  },
+  "tags": [
+    {
+      "name": "DeviceBridge"
+    }
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/v1/devices": {
+      "get": {
+        "summary": "ListDevices returns all registered devices",
+        "operationId": "DeviceBridge_ListDevices",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1ListDevicesResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "kindFilter",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "tags",
+            "in": "query",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          }
+        ],
+        "tags": [
+          "DeviceBridge"
+        ]
+      }
+    },
+    "/v1/devices/{deviceId}": {
+      "get": {
+        "summary": "GetDevice returns device details",
+        "operationId": "DeviceBridge_GetDevice",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1GetDeviceResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "deviceId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "DeviceBridge"
+        ]
+      }
+    },
+    "/v1/devices/{deviceId}/display/clear": {
+      "post": {
+        "summary": "ClearDisplay clears the display",
+        "operationId": "DeviceBridge_ClearDisplay",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1ClearDisplayResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "deviceId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/DeviceBridgeClearDisplayBody"
+            }
+          }
+        ],
+        "tags": [
+          "DeviceBridge"
+        ]
+      }
+    },
+    "/v1/devices/{deviceId}/display/show": {
+      "post": {
+        "summary": "ShowDisplay shows text on customer display",
+        "operationId": "DeviceBridge_ShowDisplay",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1ShowDisplayResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "deviceId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/DeviceBridgeShowDisplayBody"
+            }
+          }
+        ],
+        "tags": [
+          "DeviceBridge"
+        ]
+      }
+    },
+    "/v1/devices/{deviceId}/drawer/open": {
+      "post": {
+        "summary": "OpenDrawer opens a cash drawer",
+        "operationId": "DeviceBridge_OpenDrawer",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1OpenDrawerResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "deviceId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/DeviceBridgeOpenDrawerBody"
+            }
+          }
+        ],
+        "tags": [
+          "DeviceBridge"
+        ]
+      }
+    },
+    "/v1/devices/{deviceId}/payment/cancel": {
+      "post": {
+        "summary": "CancelPayment cancels a payment",
+        "operationId": "DeviceBridge_CancelPayment",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1CancelPaymentResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "deviceId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/DeviceBridgeCancelPaymentBody"
+            }
+          }
+        ],
+        "tags": [
+          "DeviceBridge"
+        ]
+      }
+    },
+    "/v1/devices/{deviceId}/payment/start": {
+      "post": {
+        "summary": "StartPayment initiates a payment transaction",
+        "operationId": "DeviceBridge_StartPayment",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1StartPaymentResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "deviceId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/DeviceBridgeStartPaymentBody"
+            }
+          }
+        ],
+        "tags": [
+          "DeviceBridge"
+        ]
+      }
+    },
+    "/v1/devices/{deviceId}/payment/{paymentId}": {
+      "get": {
+        "summary": "GetPaymentStatus queries payment status",
+        "operationId": "DeviceBridge_GetPaymentStatus",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1GetPaymentStatusResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "deviceId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "paymentId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "DeviceBridge"
+        ]
+      }
+    },
+    "/v1/devices/{deviceId}/payment/{paymentId}/events": {
+      "get": {
+        "summary": "SubscribePayment streams payment events",
+        "operationId": "DeviceBridge_SubscribePayment",
+        "responses": {
+          "200": {
+            "description": "A successful response.(streaming responses)",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "result": {
+                  "$ref": "#/definitions/v1PaymentEvent"
+                },
+                "error": {
+                  "$ref": "#/definitions/rpcStatus"
+                }
+              },
+              "title": "Stream result of v1PaymentEvent"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "deviceId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "paymentId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "DeviceBridge"
+        ]
+      }
+    },
+    "/v1/devices/{deviceId}/print": {
+      "post": {
+        "summary": "Print sends a document to a printer",
+        "operationId": "DeviceBridge_Print",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1PrintResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "deviceId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/DeviceBridgePrintBody"
+            }
+          }
+        ],
+        "tags": [
+          "DeviceBridge"
+        ]
+      }
+    },
+    "/v1/devices/{deviceId}/scale/tare": {
+      "post": {
+        "summary": "TareScale tares the scale",
+        "operationId": "DeviceBridge_TareScale",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1TareScaleResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "deviceId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/DeviceBridgeTareScaleBody"
+            }
+          }
+        ],
+        "tags": [
+          "DeviceBridge"
+        ]
+      }
+    },
+    "/v1/devices/{deviceId}/scale/zero": {
+      "post": {
+        "summary": "ZeroScale zeros the scale",
+        "operationId": "DeviceBridge_ZeroScale",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1ZeroScaleResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "deviceId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/DeviceBridgeZeroScaleBody"
+            }
+          }
+        ],
+        "tags": [
+          "DeviceBridge"
+        ]
+      }
+    },
+    "/v1/devices/{deviceId}/scanner/events": {
+      "get": {
+        "summary": "SubscribeScanner streams barcode scan events",
+        "operationId": "DeviceBridge_SubscribeScanner",
+        "responses": {
+          "200": {
+            "description": "A successful response.(streaming responses)",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "result": {
+                  "$ref": "#/definitions/v1ScanEvent"
+                },
+                "error": {
+                  "$ref": "#/definitions/rpcStatus"
+                }
+              },
+              "title": "Stream result of v1ScanEvent"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "deviceId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "DeviceBridge"
+        ]
+      }
+    },
+    "/v1/devices/{deviceId}/weight": {
+      "get": {
+        "summary": "GetWeight reads current weight from scale",
+        "operationId": "DeviceBridge_GetWeight",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1GetWeightResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "deviceId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "timeoutMs",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          }
+        ],
+        "tags": [
+          "DeviceBridge"
+        ]
+      }
+    },
+    "/v1/jobs/{jobId}": {
+      "get": {
+        "summary": "GetJob returns job status",
+        "operationId": "DeviceBridge_GetJob",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1GetJobResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "DeviceBridge"
+        ]
+      }
+    },
+    "/v1/ping": {
+      "get": {
+        "summary": "Ping checks if service is alive",
+        "operationId": "DeviceBridge_Ping",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1PingResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "tags": [
+          "DeviceBridge"
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "DeviceBridgeCancelPaymentBody": {
+      "type": "object",
+      "properties": {
+        "paymentId": {
+          "type": "string"
+        }
+      },
+      "title": "CancelPaymentRequest cancels a payment"
+    },
+    "DeviceBridgeClearDisplayBody": {
+      "type": "object",
+      "title": "ClearDisplayRequest clears the display"
+    },
+    "DeviceBridgeOpenDrawerBody": {
+      "type": "object",
+      "title": "OpenDrawerRequest opens a cash drawer"
+    },
+    "DeviceBridgePrintBody": {
+      "type": "object",
+      "properties": {
+        "document": {
+          "$ref": "#/definitions/v1PrintDocument"
+        },
+        "idempotencyKey": {
+          "type": "string"
+        }
+      },
+      "title": "PrintRequest initiates a print job"
+    },
+    "DeviceBridgeShowDisplayBody": {
+      "type": "object",
+      "properties": {
+        "lines": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "durationMs": {
+          "type": "integer",
+          "format": "int32",
+          "title": "0 = permanent"
+        }
+      },
+      "title": "ShowDisplayRequest shows text on customer display"
+    },
+    "DeviceBridgeStartPaymentBody": {
+      "type": "object",
+      "properties": {
+        "amount": {
+          "type": "number",
+          "format": "double"
+        },
+        "currency": {
+          "type": "string"
+        },
+        "merchantReference": {
+          "type": "string"
+        },
+        "metadata": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "timeoutMs": {
+          "type": "integer",
+          "format": "int32"
+        }
+      },
+      "title": "StartPaymentRequest initiates a payment"
+    },
+    "DeviceBridgeTareScaleBody": {
+      "type": "object",
+      "title": "TareScaleRequest tares the scale"
+    },
+    "DeviceBridgeZeroScaleBody": {
+      "type": "object",
+      "title": "ZeroScaleRequest zeros the scale"
+    },
+    "protobufAny": {
+      "type": "object",
+      "properties": {
+        "@type": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": {}
+    },
+    "rpcStatus": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "message": {
+          "type": "string"
+        },
+        "details": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/protobufAny"
+          }
+        }
+      }
+    },
+    "v1Alignment": {
+      "type": "string",
+      "enum": [
+        "ALIGNMENT_UNSPECIFIED",
+        "ALIGNMENT_LEFT",
+        "ALIGNMENT_CENTER",
+        "ALIGNMENT_RIGHT"
+      ],
+      "default": "ALIGNMENT_UNSPECIFIED",
+      "title": "Alignment defines text alignment"
+    },
+    "v1Barcode": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "string"
+        },
+        "symbology": {
+          "$ref": "#/definitions/v1BarcodeSymbology"
+        },
+        "height": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "width": {
+          "type": "integer",
+          "format": "int32"
+        }
+      },
+      "title": "Barcode represents a 1D barcode"
+    },
+    "v1BarcodeSymbology": {
+      "type": "string",
+      "enum": [
+        "BARCODE_SYMBOLOGY_UNSPECIFIED",
+        "BARCODE_SYMBOLOGY_UPCA",
+        "BARCODE_SYMBOLOGY_UPCE",
+        "BARCODE_SYMBOLOGY_EAN13",
+        "BARCODE_SYMBOLOGY_EAN8",
+        "BARCODE_SYMBOLOGY_CODE39",
+        "BARCODE_SYMBOLOGY_CODE128",
+        "BARCODE_SYMBOLOGY_ITF",
+        "BARCODE_SYMBOLOGY_CODABAR"
+      ],
+      "default": "BARCODE_SYMBOLOGY_UNSPECIFIED",
+      "title": "BarcodeSymbology defines barcode types"
+    },
+    "v1CancelPaymentResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        }
+      },
+      "title": "CancelPaymentResponse confirms cancellation"
+    },
+    "v1ClearDisplayResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        }
+      },
+      "title": "ClearDisplayResponse confirms clear operation"
+    },
+    "v1ConnectionInfo": {
+      "type": "object",
+      "properties": {
+        "transport": {
+          "type": "string",
+          "title": "usb, serial, tcp"
+        },
+        "address": {
+          "type": "string",
+          "title": "IP address or device path"
+        },
+        "port": {
+          "type": "integer",
+          "format": "int32",
+          "title": "Port for TCP connections"
+        },
+        "baudRate": {
+          "type": "integer",
+          "format": "int32",
+          "title": "Baud rate for serial"
+        },
+        "vendorId": {
+          "type": "integer",
+          "format": "int32",
+          "title": "USB vendor ID"
+        },
+        "productId": {
+          "type": "integer",
+          "format": "int32",
+          "title": "USB product ID"
+        }
+      },
+      "title": "ConnectionInfo describes how to connect to a device"
+    },
+    "v1Device": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string"
+        },
+        "vendor": {
+          "type": "string"
+        },
+        "model": {
+          "type": "string"
+        },
+        "connection": {
+          "$ref": "#/definitions/v1ConnectionInfo"
+        },
+        "health": {
+          "$ref": "#/definitions/v1DeviceHealth"
+        },
+        "lastSeen": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "metadata": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "title": "Device represents a hardware device"
+    },
+    "v1DeviceHealth": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "$ref": "#/definitions/v1DeviceStatus"
+        },
+        "message": {
+          "type": "string"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "errorCode": {
+          "type": "string"
+        }
+      },
+      "title": "DeviceHealth represents device health information"
+    },
+    "v1DeviceStatus": {
+      "type": "string",
+      "enum": [
+        "DEVICE_STATUS_UNSPECIFIED",
+        "DEVICE_STATUS_UNKNOWN",
+        "DEVICE_STATUS_READY",
+        "DEVICE_STATUS_DEGRADED",
+        "DEVICE_STATUS_OFFLINE",
+        "DEVICE_STATUS_ERROR"
+      ],
+      "default": "DEVICE_STATUS_UNSPECIFIED",
+      "title": "DeviceStatus represents the current state of a device"
+    },
+    "v1Element": {
+      "type": "object",
+      "properties": {
+        "line": {
+          "$ref": "#/definitions/v1Line"
+        },
+        "barcode": {
+          "$ref": "#/definitions/v1Barcode"
+        },
+        "qrCode": {
+          "$ref": "#/definitions/v1QRCode"
+        },
+        "image": {
+          "$ref": "#/definitions/v1Image"
+        }
+      },
+      "title": "Element can be text lines, barcode, QR code, or image"
+    },
+    "v1Font": {
+      "type": "string",
+      "enum": [
+        "FONT_UNSPECIFIED",
+        "FONT_A",
+        "FONT_B"
+      ],
+      "default": "FONT_UNSPECIFIED",
+      "description": "- FONT_A: Usually 12x24\n - FONT_B: Usually 9x17",
+      "title": "Font selection"
+    },
+    "v1GetDeviceResponse": {
+      "type": "object",
+      "properties": {
+        "device": {
+          "$ref": "#/definitions/v1Device"
+        }
+      },
+      "title": "GetDeviceResponse returns device"
+    },
+    "v1GetJobResponse": {
+      "type": "object",
+      "properties": {
+        "job": {
+          "$ref": "#/definitions/v1Job"
+        }
+      },
+      "title": "GetJobResponse returns job"
+    },
+    "v1GetPaymentStatusResponse": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "$ref": "#/definitions/v1PaymentStatus"
+        }
+      },
+      "title": "GetPaymentStatusResponse returns payment status"
+    },
+    "v1GetWeightResponse": {
+      "type": "object",
+      "properties": {
+        "reading": {
+          "$ref": "#/definitions/v1WeightReading"
+        }
+      },
+      "title": "GetWeightResponse returns weight reading"
+    },
+    "v1Image": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "string",
+          "format": "byte",
+          "title": "PNG or JPEG"
+        },
+        "width": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "height": {
+          "type": "integer",
+          "format": "int32"
+        }
+      },
+      "title": "Image represents a bitmap image"
+    },
+    "v1Job": {
+      "type": "object",
+      "properties": {
+        "jobId": {
+          "type": "string"
+        },
+        "deviceId": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/definitions/v1JobStatus"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "startedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "completedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "error": {
+          "type": "string"
+        },
+        "idempotencyKey": {
+          "type": "string"
+        }
+      },
+      "title": "Job represents an asynchronous device operation"
+    },
+    "v1JobStatus": {
+      "type": "string",
+      "enum": [
+        "JOB_STATUS_UNSPECIFIED",
+        "JOB_STATUS_PENDING",
+        "JOB_STATUS_IN_PROGRESS",
+        "JOB_STATUS_COMPLETED",
+        "JOB_STATUS_FAILED",
+        "JOB_STATUS_CANCELLED"
+      ],
+      "default": "JOB_STATUS_UNSPECIFIED",
+      "title": "JobStatus represents job execution state"
+    },
+    "v1Line": {
+      "type": "object",
+      "properties": {
+        "runs": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1Run"
+          }
+        },
+        "alignment": {
+          "$ref": "#/definitions/v1Alignment"
+        }
+      },
+      "title": "Line represents a single line of output"
+    },
+    "v1ListDevicesResponse": {
+      "type": "object",
+      "properties": {
+        "devices": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1Device"
+          }
+        }
+      },
+      "title": "ListDevicesResponse returns devices"
+    },
+    "v1OpenDrawerResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "openedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "title": "OpenDrawerResponse confirms drawer opening"
+    },
+    "v1PaymentEvent": {
+      "type": "object",
+      "properties": {
+        "paymentId": {
+          "type": "string"
+        },
+        "event": {
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/definitions/v1PaymentState"
+        },
+        "message": {
+          "type": "string"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "title": "PaymentEvent represents a payment state change"
+    },
+    "v1PaymentState": {
+      "type": "string",
+      "enum": [
+        "PAYMENT_STATE_UNSPECIFIED",
+        "PAYMENT_STATE_INITIATED",
+        "PAYMENT_STATE_IN_PROGRESS",
+        "PAYMENT_STATE_APPROVED",
+        "PAYMENT_STATE_DECLINED",
+        "PAYMENT_STATE_CANCELLED",
+        "PAYMENT_STATE_TIMEOUT",
+        "PAYMENT_STATE_ERROR"
+      ],
+      "default": "PAYMENT_STATE_UNSPECIFIED",
+      "title": "PaymentState defines payment status"
+    },
+    "v1PaymentStatus": {
+      "type": "object",
+      "properties": {
+        "paymentId": {
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/definitions/v1PaymentState"
+        },
+        "amount": {
+          "type": "number",
+          "format": "double"
+        },
+        "currency": {
+          "type": "string"
+        },
+        "cardType": {
+          "type": "string"
+        },
+        "last4": {
+          "type": "string"
+        },
+        "approvalCode": {
+          "type": "string"
+        },
+        "error": {
+          "type": "string"
+        },
+        "initiatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "completedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "title": "PaymentStatus represents payment state"
+    },
+    "v1PingResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        }
+      },
+      "title": "PingResponse confirms service is alive"
+    },
+    "v1PrintDocument": {
+      "type": "object",
+      "properties": {
+        "sections": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1Section"
+          }
+        },
+        "options": {
+          "$ref": "#/definitions/v1PrintOptions"
+        }
+      },
+      "title": "PrintDocument represents a complete print job"
+    },
+    "v1PrintOptions": {
+      "type": "object",
+      "properties": {
+        "cut": {
+          "type": "boolean"
+        },
+        "drawerPulse": {
+          "type": "boolean"
+        },
+        "copies": {
+          "type": "integer",
+          "format": "int32"
+        }
+      },
+      "title": "PrintOptions contains print job options"
+    },
+    "v1PrintResponse": {
+      "type": "object",
+      "properties": {
+        "jobId": {
+          "type": "string"
+        }
+      },
+      "title": "PrintResponse returns the job ID"
+    },
+    "v1QRCode": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "string"
+        },
+        "size": {
+          "type": "integer",
+          "format": "int32"
+        }
+      },
+      "title": "QRCode represents a QR code"
+    },
+    "v1Run": {
+      "type": "object",
+      "properties": {
+        "text": {
+          "type": "string"
+        },
+        "style": {
+          "$ref": "#/definitions/v1TextStyle"
+        }
+      },
+      "title": "Run represents styled text"
+    },
+    "v1ScanEvent": {
+      "type": "object",
+      "properties": {
+        "deviceId": {
+          "type": "string"
+        },
+        "data": {
+          "type": "string"
+        },
+        "symbology": {
+          "type": "string"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "eventId": {
+          "type": "string"
+        }
+      },
+      "title": "ScanEvent represents a barcode/QR scan"
+    },
+    "v1Section": {
+      "type": "object",
+      "properties": {
+        "elements": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1Element"
+          }
+        }
+      },
+      "title": "Section represents a logical grouping"
+    },
+    "v1ShowDisplayResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        }
+      },
+      "title": "ShowDisplayResponse confirms display update"
+    },
+    "v1StartPaymentResponse": {
+      "type": "object",
+      "properties": {
+        "paymentId": {
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/definitions/v1PaymentState"
+        },
+        "initiatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "title": "StartPaymentResponse returns payment ID"
+    },
+    "v1TareScaleResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        }
+      },
+      "title": "TareScaleResponse confirms tare operation"
+    },
+    "v1TextStyle": {
+      "type": "object",
+      "properties": {
+        "bold": {
+          "type": "boolean"
+        },
+        "underline": {
+          "type": "boolean"
+        },
+        "inverse": {
+          "type": "boolean"
+        },
+        "doubleWidth": {
+          "type": "boolean"
+        },
+        "doubleHeight": {
+          "type": "boolean"
+        },
+        "font": {
+          "$ref": "#/definitions/v1Font"
+        }
+      },
+      "title": "TextStyle defines text formatting"
+    },
+    "v1WeightReading": {
+      "type": "object",
+      "properties": {
+        "weight": {
+          "type": "number",
+          "format": "double"
+        },
+        "unit": {
+          "$ref": "#/definitions/v1WeightUnit"
+        },
+        "stable": {
+          "type": "boolean"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "title": "WeightReading represents a weight measurement"
+    },
+    "v1WeightUnit": {
+      "type": "string",
+      "enum": [
+        "WEIGHT_UNIT_UNSPECIFIED",
+        "WEIGHT_UNIT_KG",
+        "WEIGHT_UNIT_G",
+        "WEIGHT_UNIT_LB",
+        "WEIGHT_UNIT_OZ"
+      ],
+      "default": "WEIGHT_UNIT_UNSPECIFIED",
+      "title": "WeightUnit defines weight measurement units"
+    },
+    "v1ZeroScaleResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        }
+      },
+      "title": "ZeroScaleResponse confirms zero operation"
+    }
+  }
+}

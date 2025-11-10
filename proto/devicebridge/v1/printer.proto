@@ -4,6 +4,7 @@ package devicebridge.v1;
 
 option go_package = "github.com/Macber-eg/Flutter-Device/proto/devicebridge/v1;devicebridgev1";
 
+import "google/protobuf/timestamp.proto";
 import "proto/devicebridge/v1/common.proto";
 
 // Alignment defines text alignment

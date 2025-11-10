@@ -2,7 +2,6 @@ package printer_escpos
 
 import (
 	"bytes"
-	"fmt"
 
 	"github.com/Macber-eg/Flutter-Device/internal/devices/printer"
 )

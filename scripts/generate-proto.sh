@@ -47,11 +47,23 @@ if ! command -v protoc-gen-go-grpc &> /dev/null; then
     PLUGINS_OK=false
 fi
 
+if ! command -v protoc-gen-grpc-gateway &> /dev/null; then
+    echo -e "${YELLOW}Warning: protoc-gen-grpc-gateway not found${NC}"
+    PLUGINS_OK=false
+fi
+
+if ! command -v protoc-gen-openapiv2 &> /dev/null; then
+    echo -e "${YELLOW}Warning: protoc-gen-openapiv2 not found${NC}"
+    PLUGINS_OK=false
+fi
+
 if [ "$PLUGINS_OK" = false ]; then
     echo ""
     echo "Installing Go protobuf plugins..."
     go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
     go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+    go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-grpc-gateway@latest
+    go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2@latest
 
     # Add to PATH
     export PATH="$PATH:$(go env GOPATH)/bin"
@@ -65,11 +77,32 @@ echo -e "${BLUE}Generating protobuf code...${NC}"
 
 cd "$(dirname "$0")/.."
 
+# Create output directory for OpenAPI
+mkdir -p docs/api
+
+# Find protoc include path
+PROTOC_INCLUDE=""
+if [ -d "$HOME/.local/include" ]; then
+    PROTOC_INCLUDE="-I$HOME/.local/include"
+elif [ -d "/usr/local/include" ]; then
+    PROTOC_INCLUDE="-I/usr/local/include"
+elif [ -d "/usr/include" ]; then
+    PROTOC_INCLUDE="-I/usr/include"
+fi
+
 protoc \
+    -I. \
+    $PROTOC_INCLUDE \
     --go_out=. \
     --go_opt=paths=source_relative \
     --go-grpc_out=. \
     --go-grpc_opt=paths=source_relative \
+    --grpc-gateway_out=. \
+    --grpc-gateway_opt=paths=source_relative \
+    --grpc-gateway_opt=generate_unbound_methods=true \
+    --openapiv2_out=docs/api \
+    --openapiv2_opt=allow_merge=true \
+    --openapiv2_opt=merge_file_name=devicebridge \
     proto/devicebridge/v1/*.proto
 
 if [ $? -eq 0 ]; then
@@ -77,7 +110,11 @@ if [ $? -eq 0 ]; then
     echo -e "${GREEN}✓ Protobuf code generated successfully${NC}"
     echo ""
     echo "Generated files:"
-    ls -lh proto/devicebridge/v1/*.pb.go 2>/dev/null || echo "  (files will appear after first successful generation)"
+    echo "  Proto files:"
+    ls -lh proto/devicebridge/v1/*.pb.go 2>/dev/null || echo "    (files will appear after first successful generation)"
+    echo ""
+    echo "  OpenAPI spec:"
+    ls -lh docs/api/*.swagger.json 2>/dev/null || echo "    (file will appear after first successful generation)"
     echo ""
 else
     echo ""

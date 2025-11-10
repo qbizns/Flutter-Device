@@ -13,7 +13,8 @@ import (
 
 	"google.golang.org/grpc"
 
-	"github.com/Macber-eg/Flutter-Device/internal/api/grpc"
+	grpcapi "github.com/Macber-eg/Flutter-Device/internal/api/grpc"
+	"github.com/Macber-eg/Flutter-Device/internal/api/rest"
 	"github.com/Macber-eg/Flutter-Device/internal/app"
 	"github.com/Macber-eg/Flutter-Device/internal/config"
 	"github.com/Macber-eg/Flutter-Device/internal/devices"
@@ -146,8 +147,8 @@ func main() {
 	// Start health monitoring
 	go registry.MonitorHealth(ctx, 30*time.Second)
 
-	// Create gRPC server
-	grpcServer := grpc.NewServer(registry, jobQueue, eventBus, logger)
+	// Create gRPC API server
+	grpcAPIServer := grpcapi.NewServer(registry, jobQueue, eventBus, logger)
 
 	// Start gRPC server
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", cfg.Server.GRPCPort))
@@ -156,12 +157,36 @@ func main() {
 	}
 
 	s := grpc.NewServer()
-	pb.RegisterDeviceBridgeServer(s, grpcServer)
+	pb.RegisterDeviceBridgeServer(s, grpcAPIServer)
 
 	go func() {
 		logger.Info("starting gRPC server", telemetry.Int("port", cfg.Server.GRPCPort))
 		if err := s.Serve(lis); err != nil {
 			logger.Error("gRPC server failed", telemetry.Error(err))
+		}
+	}()
+
+	// Create REST gateway server
+	restServer := rest.NewServer(rest.Config{
+		GRPCAddress: fmt.Sprintf("localhost:%d", cfg.Server.GRPCPort),
+		HTTPPort:    cfg.Server.HTTPPort,
+	})
+
+	// Start REST server
+	if err := restServer.Start(ctx); err != nil {
+		logger.Fatal("failed to start REST server", telemetry.Error(err))
+	}
+	logger.Info("starting REST gateway", telemetry.Int("port", cfg.Server.HTTPPort))
+
+	// Serve Swagger UI
+	mux := http.NewServeMux()
+	rest.AddSwaggerRoutes(mux, "docs/api/devicebridge.swagger.json")
+	go func() {
+		addr := fmt.Sprintf(":%d", cfg.Server.HTTPPort)
+		logger.Info("swagger UI available", telemetry.String("url", fmt.Sprintf("http://localhost:%d/swagger/", cfg.Server.HTTPPort)))
+		// Note: The REST server handles /v1/* routes, Swagger handles /swagger/*
+		if err := http.ListenAndServe(addr, mux); err != nil && err != http.ErrServerClosed {
+			logger.Error("Swagger server failed", telemetry.Error(err))
 		}
 	}()
 
@@ -177,7 +202,8 @@ func main() {
 	fmt.Printf("╠═══════════════════════════════════════════════════════════╣\n")
 	fmt.Printf("║  Status: Running                                          ║\n")
 	fmt.Printf("║  gRPC:   localhost:%d                                  ║\n", cfg.Server.GRPCPort)
-	fmt.Printf("║  HTTP:   http://localhost:%d (REST gateway TODO)       ║\n", cfg.Server.HTTPPort)
+	fmt.Printf("║  REST:   http://localhost:%d/v1                        ║\n", cfg.Server.HTTPPort)
+	fmt.Printf("║  Swagger: http://localhost:%d/swagger                  ║\n", cfg.Server.HTTPPort)
 	fmt.Printf("║  Metrics: http://localhost:%d/metrics                  ║\n", cfg.Server.MetricsPort)
 	fmt.Printf("║                                                           ║\n")
 	fmt.Printf("║  Devices: %d registered                                    ║\n", registry.Count())
@@ -197,6 +223,12 @@ func main() {
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
+	// Stop REST server
+	logger.Info("stopping REST server")
+	if err := restServer.Stop(shutdownCtx); err != nil {
+		logger.Error("error stopping REST server", telemetry.Error(err))
+	}
+
 	// Stop gRPC server
 	logger.Info("stopping gRPC server")
 	s.GracefulStop()
@@ -211,6 +243,4 @@ func main() {
 
 	logger.Info("Device Bridge stopped")
 	fmt.Println("\nDevice Bridge stopped gracefully")
-
-	_ = shutdownCtx // Use shutdown context if needed
 }
