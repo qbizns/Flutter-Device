@@ -322,7 +322,132 @@ grpcurl -plaintext -d '{
 
 ---
 
-## Step 8: View Metrics
+## Step 8: Test with REST/JSON API
+
+Device Bridge v2 also exposes a complete REST/JSON API via grpc-gateway.
+
+### Ping the Service
+```bash
+curl http://localhost:8080/v1/ping
+```
+
+**Output:**
+```json
+{
+  "message": "Device Bridge is running",
+  "version": "2.0.0-dev"
+}
+```
+
+### List Devices
+```bash
+curl http://localhost:8080/v1/devices
+```
+
+**Output:**
+```json
+{
+  "devices": [
+    {
+      "id": "virtual-printer-1",
+      "name": "Virtual Test Printer",
+      "kind": "printer.virtual",
+      "health": {
+        "status": "DEVICE_STATUS_READY",
+        "message": "virtual printer ready",
+        "timestamp": "2025-11-10T..."
+      },
+      "lastSeen": "2025-11-10T...",
+      "metadata": {
+        "virtual": "true"
+      }
+    }
+  ]
+}
+```
+
+### Get Single Device
+```bash
+curl http://localhost:8080/v1/devices/virtual-printer-1
+```
+
+### Print a Receipt (REST)
+```bash
+curl -X POST http://localhost:8080/v1/devices/virtual-printer-1/print \
+  -H "Content-Type: application/json" \
+  -d '{
+    "document": {
+      "sections": [{
+        "elements": [{
+          "line": {
+            "runs": [{"text": "=== REST API TEST ===", "style": {"bold": true}}],
+            "alignment": "ALIGNMENT_CENTER"
+          }
+        }, {
+          "line": {
+            "runs": [{"text": "Device Bridge v2"}],
+            "alignment": "ALIGNMENT_CENTER"
+          }
+        }, {
+          "line": {
+            "runs": [{"text": ""}],
+            "alignment": "ALIGNMENT_LEFT"
+          }
+        }, {
+          "line": {
+            "runs": [{"text": "Coffee", "style": {}}, {"text": "         $3.50", "style": {}}],
+            "alignment": "ALIGNMENT_LEFT"
+          }
+        }, {
+          "line": {
+            "runs": [{"text": "Muffin", "style": {}}, {"text": "         $2.50", "style": {}}],
+            "alignment": "ALIGNMENT_LEFT"
+          }
+        }, {
+          "line": {
+            "runs": [{"text": ""}],
+            "alignment": "ALIGNMENT_LEFT"
+          }
+        }, {
+          "line": {
+            "runs": [{"text": "TOTAL:", "style": {"bold": true}}, {"text": "         $6.00", "style": {"bold": true}}],
+            "alignment": "ALIGNMENT_RIGHT"
+          }
+        }]
+      }],
+      "options": {
+        "cut": true
+      }
+    }
+  }'
+```
+
+**Output:**
+```json
+{
+  "jobId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+}
+```
+
+### Get Job Status (REST)
+```bash
+curl http://localhost:8080/v1/jobs/a1b2c3d4-e5f6-7890-abcd-ef1234567890
+```
+
+### Browse API with Swagger UI
+
+Open in your browser: **http://localhost:8080/swagger/**
+
+The Swagger UI provides:
+- Complete API documentation
+- Interactive "Try it out" for all endpoints
+- Request/response examples
+- Schema definitions
+- Download OpenAPI spec
+
+---
+
+## Step 9: View Metrics
 
 Open in browser: http://localhost:9090/metrics
 
