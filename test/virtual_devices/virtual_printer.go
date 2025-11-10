@@ -60,7 +60,8 @@ func (vp *VirtualPrinter) Print(ctx context.Context, doc *printer.PrintDocument)
 	// Output to console for visibility
 	fmt.Println("\n===== VIRTUAL PRINTER OUTPUT =====")
 	fmt.Println(text)
-	fmt.Println("===== END VIRTUAL PRINTER OUTPUT =====\n")
+	fmt.Println("===== END VIRTUAL PRINTER OUTPUT =====")
+	fmt.Println()
 
 	return nil
 }
@@ -68,7 +69,8 @@ func (vp *VirtualPrinter) Print(ctx context.Context, doc *printer.PrintDocument)
 // OpenDrawer simulates opening cash drawer
 func (vp *VirtualPrinter) OpenDrawer(ctx context.Context) error {
 	vp.logger.Info("virtual drawer open")
-	fmt.Println("\n===== VIRTUAL DRAWER OPENED =====\n")
+	fmt.Println("\n===== VIRTUAL DRAWER OPENED =====")
+	fmt.Println()
 	return nil
 }
 
