@@ -111,7 +111,16 @@ devices:
     name: "Virtual Printer"
     kind: "printer.virtual"
     transport: "virtual"
-    enabled: false
+    enabled: true
+    tags:
+      - "testing"
+
+  # Virtual Scanner (for testing)
+  - id: virtual-scanner-1
+    name: "Virtual Scanner"
+    kind: "scanner.virtual"
+    transport: "virtual"
+    enabled: true
     tags:
       - "testing"
 

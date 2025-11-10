@@ -113,6 +113,10 @@ func main() {
 			// Create virtual printer
 			device = virtual_devices.NewVirtualPrinter(devCfg.ID, devCfg.Name, logger)
 
+		case "scanner.virtual":
+			// Create virtual scanner
+			device = virtual_devices.NewVirtualScanner(devCfg.ID, devCfg.Name, logger, eventBus)
+
 		default:
 			logger.Warn("unsupported device kind",
 				telemetry.String("device_id", devCfg.ID),
