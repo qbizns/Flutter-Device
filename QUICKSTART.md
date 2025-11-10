@@ -447,7 +447,89 @@ The Swagger UI provides:
 
 ---
 
-## Step 9: View Metrics
+## Step 9: Test with WebSocket (Real-time Events)
+
+Device Bridge v2 also provides WebSocket endpoints for real-time event streaming.
+
+### WebSocket Endpoints
+
+- **Scanner Events**: `ws://localhost:8080/ws/scanner/:device_id`
+- **Payment Events**: `ws://localhost:8080/ws/payment/:device_id`
+- **Device Status**: `ws://localhost:8080/ws/devices`
+
+### Using Browser Test Clients
+
+Open the included HTML test clients in your browser:
+
+**Scanner Test Client:**
+```bash
+# Open in browser
+open test/client/scanner.html
+# or
+firefox test/client/scanner.html
+# or
+chrome test/client/scanner.html
+```
+
+**Payment Test Client:**
+```bash
+# Open in browser
+open test/client/payment.html
+```
+
+The test clients provide:
+- Real-time event display
+- Connection status indicator
+- Auto-reconnect support
+- Event history with timestamps
+- Beautiful, responsive UI
+
+### JavaScript Example
+
+```javascript
+// Connect to scanner WebSocket
+const ws = new WebSocket('ws://localhost:8080/ws/scanner/virtual-scanner-1');
+
+ws.onopen = function() {
+    console.log('Connected to scanner');
+};
+
+ws.onmessage = function(event) {
+    const data = JSON.parse(event.data);
+    console.log('Scan event:', data);
+    /*
+    {
+        "type": "BARCODE_SCANNED",
+        "device_id": "virtual-scanner-1",
+        "timestamp": "2025-11-10T15:30:00Z",
+        "data": {
+            "barcode": "1234567890",
+            "symbology": "CODE128"
+        }
+    }
+    */
+};
+
+ws.onerror = function(error) {
+    console.error('WebSocket error:', error);
+};
+
+ws.onclose = function() {
+    console.log('Disconnected from scanner');
+};
+```
+
+### WebSocket Features
+
+- **Heartbeat**: Automatic ping/pong every 54 seconds
+- **Auto-cleanup**: Connections cleaned up on disconnect
+- **Event Broadcasting**: Events sent to all connected clients
+- **CORS Support**: Works from browser applications
+- **Multiple Clients**: Unlimited concurrent connections
+
+---
+
+## Step 10: View Metrics
 
 Open in browser: http://localhost:9090/metrics
 
