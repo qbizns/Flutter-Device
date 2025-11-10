@@ -4,19 +4,25 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
+	"google.golang.org/grpc"
+
+	"github.com/Macber-eg/Flutter-Device/internal/api/grpc"
 	"github.com/Macber-eg/Flutter-Device/internal/app"
 	"github.com/Macber-eg/Flutter-Device/internal/config"
+	"github.com/Macber-eg/Flutter-Device/internal/devices"
 	"github.com/Macber-eg/Flutter-Device/internal/drivers/printer_escpos"
 	"github.com/Macber-eg/Flutter-Device/internal/events"
 	"github.com/Macber-eg/Flutter-Device/internal/jobs"
 	"github.com/Macber-eg/Flutter-Device/internal/telemetry"
 	"github.com/Macber-eg/Flutter-Device/test/virtual_devices"
+	pb "github.com/Macber-eg/Flutter-Device/proto/devicebridge/v1"
 )
 
 const version = "2.0.0-dev"
@@ -87,12 +93,12 @@ func main() {
 			continue
 		}
 
-		var device interface{} // Will be devices.Device
+		var device devices.Device
 
 		switch devCfg.Kind {
 		case "printer.escpos":
 			// Create ESC/POS printer
-			driver := printer_escpos.NewDriver(printer_escpos.Config{
+			device = printer_escpos.NewDriver(printer_escpos.Config{
 				ID:       devCfg.ID,
 				Name:     devCfg.Name,
 				Address:  devCfg.Address,
@@ -100,7 +106,6 @@ func main() {
 				Timeout:  5 * time.Second,
 				Metadata: devCfg.Metadata,
 			}, logger)
-			device = driver
 
 		case "printer.virtual":
 			// Create virtual printer
@@ -115,17 +120,12 @@ func main() {
 		}
 
 		// Register device
-		if dev, ok := device.(interface {
-			ID() string
-			Kind() string
-			Name() string
-			Start(context.Context) error
-			Stop() error
-			Health() interface{}
-			Metadata() map[string]string
-		}); ok {
-			// Type assertion to devices.Device would fail without generated code
-			// For now, we'll handle this differently
+		if err := registry.Register(device); err != nil {
+			logger.Error("failed to register device",
+				telemetry.String("device_id", devCfg.ID),
+				telemetry.Error(err),
+			)
+		} else {
 			logger.Info("device registered",
 				telemetry.String("device_id", devCfg.ID),
 				telemetry.String("kind", devCfg.Kind),
@@ -139,16 +139,31 @@ func main() {
 
 	// Start devices
 	ctx := context.Background()
-	// registry.StartAll(ctx) would go here
+	if err := registry.StartAll(ctx); err != nil {
+		logger.Error("error starting devices", telemetry.Error(err))
+	}
 
 	// Start health monitoring
-	go func() {
-		// registry.MonitorHealth(ctx, 30*time.Second)
-	}()
+	go registry.MonitorHealth(ctx, 30*time.Second)
 
-	// TODO: Start gRPC server
-	// TODO: Start REST gateway
-	// TODO: Start WebSocket server
+	// Create gRPC server
+	grpcServer := grpc.NewServer(registry, jobQueue, eventBus, logger)
+
+	// Start gRPC server
+	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", cfg.Server.GRPCPort))
+	if err != nil {
+		logger.Fatal("failed to listen", telemetry.Error(err))
+	}
+
+	s := grpc.NewServer()
+	pb.RegisterDeviceBridgeServer(s, grpcServer)
+
+	go func() {
+		logger.Info("starting gRPC server", telemetry.Int("port", cfg.Server.GRPCPort))
+		if err := s.Serve(lis); err != nil {
+			logger.Error("gRPC server failed", telemetry.Error(err))
+		}
+	}()
 
 	logger.Info("Device Bridge started successfully",
 		telemetry.String("version", version),
@@ -162,8 +177,10 @@ func main() {
 	fmt.Printf("╠═══════════════════════════════════════════════════════════╣\n")
 	fmt.Printf("║  Status: Running                                          ║\n")
 	fmt.Printf("║  gRPC:   localhost:%d                                  ║\n", cfg.Server.GRPCPort)
-	fmt.Printf("║  HTTP:   http://localhost:%d                           ║\n", cfg.Server.HTTPPort)
+	fmt.Printf("║  HTTP:   http://localhost:%d (REST gateway TODO)       ║\n", cfg.Server.HTTPPort)
 	fmt.Printf("║  Metrics: http://localhost:%d/metrics                  ║\n", cfg.Server.MetricsPort)
+	fmt.Printf("║                                                           ║\n")
+	fmt.Printf("║  Devices: %d registered                                    ║\n", registry.Count())
 	fmt.Printf("║                                                           ║\n")
 	fmt.Printf("║  Press Ctrl+C to stop                                     ║\n")
 	fmt.Printf("╚═══════════════════════════════════════════════════════════╝\n")
@@ -180,11 +197,17 @@ func main() {
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
+	// Stop gRPC server
+	logger.Info("stopping gRPC server")
+	s.GracefulStop()
+
 	// Stop job queue
+	logger.Info("stopping job queue")
 	jobQueue.Stop()
 
 	// Stop devices
-	// registry.StopAll()
+	logger.Info("stopping devices")
+	registry.StopAll()
 
 	logger.Info("Device Bridge stopped")
 	fmt.Println("\nDevice Bridge stopped gracefully")
