@@ -1,0 +1,135 @@
+project_name: device-bridge
+
+before:
+  hooks:
+    - go mod tidy
+    - go generate ./...
+
+builds:
+  - id: bridge
+    main: ./cmd/bridge
+    binary: bridge
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X main.version={{.Version}}
+      - -X main.commit={{.Commit}}
+      - -X main.date={{.Date}}
+
+  - id: bridge-cli
+    main: ./cmd/bridge-cli
+    binary: bridge-cli
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X main.version={{.Version}}
+
+archives:
+  - id: default
+    format: tar.gz
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- .Version }}_
+      {{- .Os }}_
+      {{- .Arch }}
+    format_overrides:
+      - goos: windows
+        format: zip
+    files:
+      - README.md
+      - LICENSE
+      - QUICKSTART.md
+      - configs/config.example.yaml
+
+checksum:
+  name_template: 'checksums.txt'
+
+snapshot:
+  name_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+      - '^chore:'
+      - 'README'
+  groups:
+    - title: Features
+      regexp: "^.*feat[(\\w)]*:+.*$"
+      order: 0
+    - title: 'Bug Fixes'
+      regexp: "^.*fix[(\\w)]*:+.*$"
+      order: 1
+    - title: 'Performance Improvements'
+      regexp: "^.*perf[(\\w)]*:+.*$"
+      order: 2
+    - title: Others
+      order: 999
+
+release:
+  github:
+    owner: Macber-eg
+    name: Flutter-Device
+  draft: false
+  prerelease: auto
+  name_template: "Device Bridge {{.Version}}"
+  header: |
+    ## Device Bridge {{.Version}}
+
+    Production-grade hardware abstraction layer for POS and retail devices.
+  footer: |
+    **Full Changelog**: https://github.com/Macber-eg/Flutter-Device/compare/{{ .PreviousTag }}...{{ .Tag }}
+
+dockers:
+  - image_templates:
+      - "ghcr.io/macber-eg/device-bridge:{{ .Version }}-amd64"
+      - "ghcr.io/macber-eg/device-bridge:latest-amd64"
+    use: buildx
+    dockerfile: Dockerfile
+    build_flag_templates:
+      - "--platform=linux/amd64"
+      - "--label=org.opencontainers.image.title={{ .ProjectName }}"
+      - "--label=org.opencontainers.image.version={{ .Version }}"
+      - "--label=org.opencontainers.image.created={{ .Date }}"
+      - "--label=org.opencontainers.image.revision={{ .FullCommit }}"
+
+  - image_templates:
+      - "ghcr.io/macber-eg/device-bridge:{{ .Version }}-arm64"
+      - "ghcr.io/macber-eg/device-bridge:latest-arm64"
+    use: buildx
+    dockerfile: Dockerfile
+    build_flag_templates:
+      - "--platform=linux/arm64"
+      - "--label=org.opencontainers.image.title={{ .ProjectName }}"
+      - "--label=org.opencontainers.image.version={{ .Version }}"
+      - "--label=org.opencontainers.image.created={{ .Date }}"
+      - "--label=org.opencontainers.image.revision={{ .FullCommit }}"
+
+docker_manifests:
+  - name_template: "ghcr.io/macber-eg/device-bridge:{{ .Version }}"
+    image_templates:
+      - "ghcr.io/macber-eg/device-bridge:{{ .Version }}-amd64"
+      - "ghcr.io/macber-eg/device-bridge:{{ .Version }}-arm64"
+
+  - name_template: "ghcr.io/macber-eg/device-bridge:latest"
+    image_templates:
+      - "ghcr.io/macber-eg/device-bridge:latest-amd64"
+      - "ghcr.io/macber-eg/device-bridge:latest-arm64"
