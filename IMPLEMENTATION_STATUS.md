@@ -1,7 +1,7 @@
 # Device Bridge v2 - Implementation Status
 
 **Last Updated:** 2025-11-10
-**Version:** Foundation / MVP in Progress
+**Version:** Core Systems Complete / ~60% MVP
 
 ---
 
@@ -88,27 +88,69 @@ This document tracks the implementation status of Device Bridge v2 according to 
   - Payment state machine
   - Event streaming for payment updates
 
+#### 5. Core Systems (NEW!)
+
+- ✅ **Job Scheduler** (`internal/jobs/`)
+  - Asynchronous job queue with channels
+  - Worker pool with configurable concurrency (default 10 workers)
+  - Job history storage (1000 jobs, auto-cleanup)
+  - Idempotency support (24-hour window)
+  - Timeout handling per job
+  - Status tracking (pending, in_progress, completed, failed, cancelled)
+  - Metrics integration
+
+- ✅ **Event Bus** (`internal/events/`)
+  - Pub/sub system for real-time device events
+  - Multiple subscribers per device
+  - Buffered channels (100 events per subscriber)
+  - Auto-cleanup on context cancellation
+  - Event types: scanner, payment, device status
+
+- ✅ **Device Registry** (`internal/app/`)
+  - Device registration and lifecycle management
+  - Health monitoring with configurable intervals
+  - Query by ID, kind, or tags
+  - Start/Stop all devices
+  - Concurrent access with RWMutex
+  - Automatic metrics updates
+
+#### 6. Device Drivers (NEW!)
+
+- ✅ **ESC/POS Printer Driver** (`internal/drivers/printer_escpos/`)
+  - TCP/IP transport with auto-reconnection
+  - Complete ESC/POS command generation
+  - Text formatting (bold, underline, inverse, fonts, sizes)
+  - Text alignment (left, center, right)
+  - Barcode support (8 symbologies)
+  - QR code support with configurable size
+  - Cash drawer pulse command
+  - Connection timeout handling (5s default)
+  - Error handling and health reporting
+
+- ✅ **Virtual Printer** (`test/virtual_devices/`)
+  - Complete printer interface implementation
+  - Console output for testing
+  - Print history tracking
+  - Text-based document rendering
+  - No hardware required
+
+#### 7. Application Entry Point (NEW!)
+
+- ✅ **Main Daemon** (`cmd/bridge/main.go`)
+  - Configuration loading
+  - Component initialization
+  - Device registration
+  - Graceful shutdown handling
+  - Signal handling (SIGINT, SIGTERM)
+  - Metrics server startup
+  - Nice console UI
+  - Version flag
+
 ---
 
 ### 🚧 In Progress
 
-#### Job Scheduler (`internal/jobs/`)
-- ⏳ Job queue implementation
-- ⏳ Worker pool
-- ⏳ Job history
-- ⏳ Idempotency support
-- ⏳ Timeout handling
-
-#### Event Bus (`internal/events/`)
-- ⏳ Pub/sub system for device events
-- ⏳ Subscriber management
-- ⏳ Event routing
-
-#### Device Registry (`internal/app/`)
-- ⏳ Registry implementation
-- ⏳ Device lifecycle management
-- ⏳ Health monitoring
-- ⏳ Device discovery integration
+None - Core systems complete!
 
 ---
 
@@ -117,14 +159,15 @@ This document tracks the implementation status of Device Bridge v2 according to 
 #### Device Drivers
 
 **Printers:**
-- ❌ ESC/POS printer driver (`internal/drivers/printer_escpos/`)
-  - TCP/Serial/USB transport
-  - Command generation
-  - Arabic text support
-  - Barcode/QR code rendering
-  - Image printing
+- ✅ ESC/POS printer driver (`internal/drivers/printer_escpos/`) - TCP transport complete
+  - ✅ TCP transport
+  - ✅ Command generation
+  - ❌ Arabic text support (future)
+  - ✅ Barcode/QR code rendering
+  - ❌ Image printing (future)
+  - ❌ Serial/USB transport (future)
 - ❌ ZPL label printer driver (`internal/drivers/printer_zpl/`)
-- ❌ Virtual printer for testing
+- ✅ Virtual printer for testing
 
 **Scanners:**
 - ❌ HID scanner driver (`internal/drivers/scanner_hid/`)
@@ -164,7 +207,7 @@ This document tracks the implementation status of Device Bridge v2 according to 
 - ❌ mDNS service discovery (`internal/discovery/mdns.go`)
 
 #### Entry Points
-- ❌ Main daemon (`cmd/bridge/main.go`)
+- ✅ Main daemon (`cmd/bridge/main.go`) - Core complete, needs gRPC wiring
 - ❌ CLI tool (`cmd/bridge-cli/main.go`)
 
 #### Security
@@ -344,6 +387,7 @@ Following the specification's 12-step roadmap:
 
 ---
 
-**Progress:** ~25% Complete (Foundation & Interfaces)
+**Progress:** ~60% Complete (Core Systems Working!)
 **Status:** Active Development
 **Target:** Phase 1 MVP Completion
+**Next:** gRPC Server Implementation + Proto Code Generation

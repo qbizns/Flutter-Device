@@ -4,8 +4,8 @@
 
 [![License](https://img.shields.io/badge/license-TBD-blue.svg)](LICENSE)
 [![Go Version](https://img.shields.io/badge/go-1.22%2B-blue.svg)](https://golang.org/dl/)
-[![Status](https://img.shields.io/badge/status-foundation--complete-yellow.svg)](IMPLEMENTATION_STATUS.md)
-[![Progress](https://img.shields.io/badge/progress-25%25-yellow.svg)](IMPLEMENTATION_STATUS.md)
+[![Status](https://img.shields.io/badge/status-core--systems--working-orange.svg)](IMPLEMENTATION_STATUS.md)
+[![Progress](https://img.shields.io/badge/progress-60%25-orange.svg)](IMPLEMENTATION_STATUS.md)
 
 ---
 
@@ -15,12 +15,15 @@ Device Bridge v2 is a local or network microservice that acts as a **unified har
 
 **Core Philosophy:** Clients never talk to hardware directly. They communicate with Device Bridge via a stable, versioned API.
 
-**Current Status:** Foundation complete (25% - see [Implementation Status](IMPLEMENTATION_STATUS.md))
-- ✅ Project structure & build system
-- ✅ Protocol Buffer definitions
-- ✅ Core infrastructure (config, logging, metrics)
-- ✅ All device interfaces defined
-- 🚧 Device drivers, API server, and full implementation in progress
+**Current Status:** Core systems working (60% - see [Implementation Status](IMPLEMENTATION_STATUS.md) | [MVP Progress](MVP_PROGRESS.md))
+- ✅ Foundation & infrastructure
+- ✅ Job scheduler & queue
+- ✅ Event bus (pub/sub)
+- ✅ Device registry
+- ✅ ESC/POS printer driver (TCP)
+- ✅ Virtual printer for testing
+- ✅ Main daemon entry point
+- 🚧 gRPC server implementation (next)
 
 ---
 
