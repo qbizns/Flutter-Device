@@ -1,0 +1,41 @@
+# Minimal configuration for testing security features
+server:
+  grpc_port: 50051
+  http_port: 8080
+  metrics_port: 9090
+  host: "localhost"
+
+devices:
+  # Virtual devices only (no network connections)
+  - id: virtual-printer-1
+    name: "Virtual Printer"
+    kind: "printer.virtual"
+    transport: "virtual"
+    enabled: true
+    tags:
+      - "testing"
+
+  - id: virtual-scanner-1
+    name: "Virtual Scanner"
+    kind: "scanner.virtual"
+    transport: "virtual"
+    enabled: true
+    tags:
+      - "testing"
+
+logging:
+  level: "info"
+  format: "json"
+
+telemetry:
+  metrics:
+    enabled: true
+  tracing:
+    enabled: false
+
+security:
+  mode: "development"  # development or production
+  tls:
+    enabled: false
+  acl:
+    enabled: false

@@ -22,6 +22,7 @@ import (
 	"github.com/Macber-eg/Flutter-Device/internal/drivers/printer_escpos"
 	"github.com/Macber-eg/Flutter-Device/internal/events"
 	"github.com/Macber-eg/Flutter-Device/internal/jobs"
+	"github.com/Macber-eg/Flutter-Device/internal/security"
 	"github.com/Macber-eg/Flutter-Device/internal/telemetry"
 	"github.com/Macber-eg/Flutter-Device/test/virtual_devices"
 	pb "github.com/Macber-eg/Flutter-Device/proto/devicebridge/v1"
@@ -156,6 +157,94 @@ func main() {
 	// Start health monitoring
 	go registry.MonitorHealth(ctx, 30*time.Second)
 
+	// Initialize security components
+	var auth *security.Auth
+	var acl *security.ACL
+	var grpcOpts []grpc.ServerOption
+
+	// Initialize authentication
+	auth = security.NewAuth(logger)
+
+	// Seed development API keys in development mode
+	if cfg.Security.Mode == "development" {
+		devKey := security.GenerateAPIKey()
+		auth.AddAPIKey(&security.APIKey{
+			Key:       devKey,
+			ClientID:  "dev_client",
+			Name:      "Development API Key",
+			CreatedAt: time.Now(),
+			ExpiresAt: nil, // No expiration
+			Enabled:   true,
+		})
+
+		logger.Info("development API key generated",
+			telemetry.String("key", devKey),
+			telemetry.String("client_id", "dev_client"),
+		)
+		fmt.Printf("\n")
+		fmt.Printf("╔═══════════════════════════════════════════════════════════╗\n")
+		fmt.Printf("║                 DEVELOPMENT MODE                          ║\n")
+		fmt.Printf("╠═══════════════════════════════════════════════════════════╣\n")
+		fmt.Printf("║  API Key: %s  ║\n", devKey[:56])
+		fmt.Printf("║           %s  ║\n", devKey[56:])
+		fmt.Printf("║                                                           ║\n")
+		fmt.Printf("║  Use header: x-api-key: <key>                             ║\n")
+		fmt.Printf("╚═══════════════════════════════════════════════════════════╝\n")
+		fmt.Printf("\n")
+	}
+
+	// Add authentication interceptor (skip in development mode if not enabled)
+	if cfg.Security.Mode == "production" || cfg.Security.ACL.Enabled {
+		grpcOpts = append(grpcOpts,
+			grpc.UnaryInterceptor(auth.UnaryInterceptor()),
+			grpc.StreamInterceptor(auth.StreamInterceptor()),
+		)
+		logger.Info("authentication enabled")
+	}
+
+	// Initialize ACL if enabled
+	if cfg.Security.ACL.Enabled {
+		acl = security.NewACL(logger)
+
+		// Add rules from config
+		for _, rule := range cfg.Security.ACL.Rules {
+			acl.AddRule(&security.ACLRule{
+				ClientID:          rule.ClientID,
+				AllowedDevices:    rule.AllowedDevices,
+				AllowedOperations: rule.AllowedOperations,
+			})
+		}
+
+		logger.Info("ACL enabled",
+			telemetry.Int("rules", len(cfg.Security.ACL.Rules)),
+		)
+	}
+
+	// Initialize TLS if enabled
+	if cfg.Security.TLS.Enabled {
+		tlsConfig := security.TLSConfig{
+			CertFile: cfg.Security.TLS.CertFile,
+			KeyFile:  cfg.Security.TLS.KeyFile,
+			CAFile:   cfg.Security.TLS.CAFile,
+		}
+
+		creds, err := security.LoadServerTLSCredentials(tlsConfig)
+		if err != nil {
+			logger.Fatal("failed to load TLS credentials", telemetry.Error(err))
+		}
+
+		grpcOpts = append(grpcOpts, grpc.Creds(creds))
+
+		tlsMode := "TLS"
+		if tlsConfig.CAFile != "" {
+			tlsMode = "mTLS (mutual)"
+		}
+		logger.Info("TLS enabled",
+			telemetry.String("mode", tlsMode),
+			telemetry.String("cert", cfg.Security.TLS.CertFile),
+		)
+	}
+
 	// Create gRPC API server
 	grpcAPIServer := grpcapi.NewServer(registry, jobQueue, eventBus, logger)
 
@@ -165,7 +254,7 @@ func main() {
 		logger.Fatal("failed to listen", telemetry.Error(err))
 	}
 
-	s := grpc.NewServer()
+	s := grpc.NewServer(grpcOpts...)
 	pb.RegisterDeviceBridgeServer(s, grpcAPIServer)
 
 	go func() {
