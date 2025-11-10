@@ -20,6 +20,7 @@ import (
 	"github.com/Macber-eg/Flutter-Device/internal/config"
 	"github.com/Macber-eg/Flutter-Device/internal/devices"
 	"github.com/Macber-eg/Flutter-Device/internal/drivers/printer_escpos"
+	"github.com/Macber-eg/Flutter-Device/internal/drivers/printer_zpl"
 	"github.com/Macber-eg/Flutter-Device/internal/events"
 	"github.com/Macber-eg/Flutter-Device/internal/jobs"
 	"github.com/Macber-eg/Flutter-Device/internal/security"
@@ -107,6 +108,20 @@ func main() {
 				Address:  devCfg.Address,
 				Port:     devCfg.Port,
 				Timeout:  5 * time.Second,
+				Metadata: devCfg.Metadata,
+			}, logger)
+
+		case "printer.zpl":
+			// Create ZPL label printer
+			device = printer_zpl.NewDriver(printer_zpl.Config{
+				ID:       devCfg.ID,
+				Name:     devCfg.Name,
+				Address:  devCfg.Address,
+				Port:     devCfg.Port,
+				Timeout:  5 * time.Second,
+				DPI:      203, // Default 203 DPI
+				Width:    800,
+				Height:   600,
 				Metadata: devCfg.Metadata,
 			}, logger)
 
