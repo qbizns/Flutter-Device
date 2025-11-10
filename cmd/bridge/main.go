@@ -137,6 +137,14 @@ func main() {
 			// Create virtual scale
 			device = virtual_devices.NewVirtualScale(devCfg.ID, devCfg.Name, logger)
 
+		case "display.virtual":
+			// Create virtual display
+			device = virtual_devices.NewVirtualDisplay(devCfg.ID, devCfg.Name, logger)
+
+		case "drawer.virtual":
+			// Create virtual drawer
+			device = virtual_devices.NewVirtualDrawer(devCfg.ID, devCfg.Name, logger)
+
 		default:
 			logger.Warn("unsupported device kind",
 				telemetry.String("device_id", devCfg.ID),
