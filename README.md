@@ -28,7 +28,7 @@ Device Bridge v2 is a local or network microservice that acts as a **unified har
 - ✅ Full type converters
 - ✅ Production-ready main daemon
 
-**Phase 2 Progress (40% ✅):**
+**Phase 2 Progress (55% ✅):**
 - ✅ REST/JSON API gateway (grpc-gateway)
 - ✅ Swagger UI for API documentation
 - ✅ CORS support for browser clients
@@ -37,10 +37,14 @@ Device Bridge v2 is a local or network microservice that acts as a **unified har
 - ✅ Virtual scanner (auto-scan every 15s)
 - ✅ Virtual scale (auto-weight every 5s, zero/tare)
 - ✅ Auto-discovery framework (TCP scanner)
-- ⏳ USB HID scanner driver
-- ⏳ Serial scale protocols (Mettler, CAS, Dibal)
-- ⏳ mDNS/Bonjour discovery
-- ⏳ Security features (mTLS, ACL)
+- ✅ Security features (mTLS, ACL, API Auth)
+- ✅ CLI administration tool (bridge-cli)
+- ⏳ ZPL label printer driver
+- ⏳ Print template engine
+- ⏳ Virtual display and drawer devices
+- ⏳ Unit and integration tests
+- ⏳ CI/CD pipeline (GitHub Actions)
+- ⏳ Complete documentation
 
 🎯 **Ready to use!** See [QUICKSTART.md](QUICKSTART.md)
 
