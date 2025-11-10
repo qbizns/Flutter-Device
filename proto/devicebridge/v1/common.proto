@@ -1,0 +1,72 @@
+syntax = "proto3";
+
+package devicebridge.v1;
+
+option go_package = "github.com/Macber-eg/Flutter-Device/proto/devicebridge/v1;devicebridgev1";
+
+import "google/protobuf/timestamp.proto";
+
+// DeviceStatus represents the current state of a device
+enum DeviceStatus {
+  DEVICE_STATUS_UNSPECIFIED = 0;
+  DEVICE_STATUS_UNKNOWN = 1;
+  DEVICE_STATUS_READY = 2;
+  DEVICE_STATUS_DEGRADED = 3;
+  DEVICE_STATUS_OFFLINE = 4;
+  DEVICE_STATUS_ERROR = 5;
+}
+
+// DeviceHealth represents device health information
+message DeviceHealth {
+  DeviceStatus status = 1;
+  string message = 2;
+  google.protobuf.Timestamp timestamp = 3;
+  string error_code = 4;
+}
+
+// Device represents a hardware device
+message Device {
+  string id = 1;
+  string name = 2;
+  string kind = 3;
+  string vendor = 4;
+  string model = 5;
+  ConnectionInfo connection = 6;
+  DeviceHealth health = 7;
+  google.protobuf.Timestamp last_seen = 8;
+  map<string, string> metadata = 9;
+  repeated string tags = 10;
+}
+
+// ConnectionInfo describes how to connect to a device
+message ConnectionInfo {
+  string transport = 1; // usb, serial, tcp
+  string address = 2;   // IP address or device path
+  int32 port = 3;       // Port for TCP connections
+  int32 baud_rate = 4;  // Baud rate for serial
+  int32 vendor_id = 5;  // USB vendor ID
+  int32 product_id = 6; // USB product ID
+}
+
+// JobStatus represents job execution state
+enum JobStatus {
+  JOB_STATUS_UNSPECIFIED = 0;
+  JOB_STATUS_PENDING = 1;
+  JOB_STATUS_IN_PROGRESS = 2;
+  JOB_STATUS_COMPLETED = 3;
+  JOB_STATUS_FAILED = 4;
+  JOB_STATUS_CANCELLED = 5;
+}
+
+// Job represents an asynchronous device operation
+message Job {
+  string job_id = 1;
+  string device_id = 2;
+  string type = 3;
+  JobStatus status = 4;
+  google.protobuf.Timestamp created_at = 5;
+  google.protobuf.Timestamp started_at = 6;
+  google.protobuf.Timestamp completed_at = 7;
+  string error = 8;
+  string idempotency_key = 9;
+}

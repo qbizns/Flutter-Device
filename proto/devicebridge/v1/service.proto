@@ -1,0 +1,176 @@
+syntax = "proto3";
+
+package devicebridge.v1;
+
+option go_package = "github.com/Macber-eg/Flutter-Device/proto/devicebridge/v1;devicebridgev1";
+
+import "google/api/annotations.proto";
+import "proto/devicebridge/v1/common.proto";
+import "proto/devicebridge/v1/printer.proto";
+import "proto/devicebridge/v1/scanner.proto";
+import "proto/devicebridge/v1/scale.proto";
+import "proto/devicebridge/v1/display.proto";
+import "proto/devicebridge/v1/payment.proto";
+
+// DeviceBridge is the main service
+service DeviceBridge {
+  // Ping checks if service is alive
+  rpc Ping(PingRequest) returns (PingResponse) {
+    option (google.api.http) = {
+      get: "/v1/ping"
+    };
+  }
+
+  // ListDevices returns all registered devices
+  rpc ListDevices(ListDevicesRequest) returns (ListDevicesResponse) {
+    option (google.api.http) = {
+      get: "/v1/devices"
+    };
+  }
+
+  // GetDevice returns device details
+  rpc GetDevice(GetDeviceRequest) returns (GetDeviceResponse) {
+    option (google.api.http) = {
+      get: "/v1/devices/{device_id}"
+    };
+  }
+
+  // Print sends a document to a printer
+  rpc Print(PrintRequest) returns (PrintResponse) {
+    option (google.api.http) = {
+      post: "/v1/devices/{device_id}/print"
+      body: "*"
+    };
+  }
+
+  // OpenDrawer opens a cash drawer
+  rpc OpenDrawer(OpenDrawerRequest) returns (OpenDrawerResponse) {
+    option (google.api.http) = {
+      post: "/v1/devices/{device_id}/drawer/open"
+      body: "*"
+    };
+  }
+
+  // SubscribeScanner streams barcode scan events
+  rpc SubscribeScanner(SubscribeScannerRequest) returns (stream ScanEvent) {
+    option (google.api.http) = {
+      get: "/v1/devices/{device_id}/scanner/events"
+    };
+  }
+
+  // GetWeight reads current weight from scale
+  rpc GetWeight(GetWeightRequest) returns (GetWeightResponse) {
+    option (google.api.http) = {
+      get: "/v1/devices/{device_id}/weight"
+    };
+  }
+
+  // ZeroScale zeros the scale
+  rpc ZeroScale(ZeroScaleRequest) returns (ZeroScaleResponse) {
+    option (google.api.http) = {
+      post: "/v1/devices/{device_id}/scale/zero"
+      body: "*"
+    };
+  }
+
+  // TareScale tares the scale
+  rpc TareScale(TareScaleRequest) returns (TareScaleResponse) {
+    option (google.api.http) = {
+      post: "/v1/devices/{device_id}/scale/tare"
+      body: "*"
+    };
+  }
+
+  // ShowDisplay shows text on customer display
+  rpc ShowDisplay(ShowDisplayRequest) returns (ShowDisplayResponse) {
+    option (google.api.http) = {
+      post: "/v1/devices/{device_id}/display/show"
+      body: "*"
+    };
+  }
+
+  // ClearDisplay clears the display
+  rpc ClearDisplay(ClearDisplayRequest) returns (ClearDisplayResponse) {
+    option (google.api.http) = {
+      post: "/v1/devices/{device_id}/display/clear"
+      body: "*"
+    };
+  }
+
+  // StartPayment initiates a payment transaction
+  rpc StartPayment(StartPaymentRequest) returns (StartPaymentResponse) {
+    option (google.api.http) = {
+      post: "/v1/devices/{device_id}/payment/start"
+      body: "*"
+    };
+  }
+
+  // CancelPayment cancels a payment
+  rpc CancelPayment(CancelPaymentRequest) returns (CancelPaymentResponse) {
+    option (google.api.http) = {
+      post: "/v1/devices/{device_id}/payment/cancel"
+      body: "*"
+    };
+  }
+
+  // GetPaymentStatus queries payment status
+  rpc GetPaymentStatus(GetPaymentStatusRequest) returns (GetPaymentStatusResponse) {
+    option (google.api.http) = {
+      get: "/v1/devices/{device_id}/payment/{payment_id}"
+    };
+  }
+
+  // SubscribePayment streams payment events
+  rpc SubscribePayment(SubscribePaymentRequest) returns (stream PaymentEvent) {
+    option (google.api.http) = {
+      get: "/v1/devices/{device_id}/payment/{payment_id}/events"
+    };
+  }
+
+  // GetJob returns job status
+  rpc GetJob(GetJobRequest) returns (GetJobResponse) {
+    option (google.api.http) = {
+      get: "/v1/jobs/{job_id}"
+    };
+  }
+}
+
+// PingRequest checks service health
+message PingRequest {}
+
+// PingResponse confirms service is alive
+message PingResponse {
+  string message = 1;
+  string version = 2;
+}
+
+// ListDevicesRequest lists devices with optional filtering
+message ListDevicesRequest {
+  string kind_filter = 1;
+  repeated string tags = 2;
+}
+
+// ListDevicesResponse returns devices
+message ListDevicesResponse {
+  repeated Device devices = 1;
+}
+
+// GetDeviceRequest requests device details
+message GetDeviceRequest {
+  string device_id = 1;
+}
+
+// GetDeviceResponse returns device
+message GetDeviceResponse {
+  Device device = 1;
+}
+
+// GetJobRequest requests job status
+message GetJobRequest {
+  string job_id = 1;
+}
+
+// GetJobResponse returns job
+message GetJobResponse {
+  Job job = 1;
+}

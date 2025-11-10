@@ -1,0 +1,87 @@
+syntax = "proto3";
+
+package devicebridge.v1;
+
+option go_package = "github.com/Macber-eg/Flutter-Device/proto/devicebridge/v1;devicebridgev1";
+
+import "google/protobuf/timestamp.proto";
+
+// PaymentState defines payment status
+enum PaymentState {
+  PAYMENT_STATE_UNSPECIFIED = 0;
+  PAYMENT_STATE_INITIATED = 1;
+  PAYMENT_STATE_IN_PROGRESS = 2;
+  PAYMENT_STATE_APPROVED = 3;
+  PAYMENT_STATE_DECLINED = 4;
+  PAYMENT_STATE_CANCELLED = 5;
+  PAYMENT_STATE_TIMEOUT = 6;
+  PAYMENT_STATE_ERROR = 7;
+}
+
+// StartPaymentRequest initiates a payment
+message StartPaymentRequest {
+  string device_id = 1;
+  double amount = 2;
+  string currency = 3;
+  string merchant_reference = 4;
+  map<string, string> metadata = 5;
+  int32 timeout_ms = 6;
+}
+
+// StartPaymentResponse returns payment ID
+message StartPaymentResponse {
+  string payment_id = 1;
+  PaymentState status = 2;
+  google.protobuf.Timestamp initiated_at = 3;
+}
+
+// CancelPaymentRequest cancels a payment
+message CancelPaymentRequest {
+  string device_id = 1;
+  string payment_id = 2;
+}
+
+// CancelPaymentResponse confirms cancellation
+message CancelPaymentResponse {
+  bool success = 1;
+}
+
+// GetPaymentStatusRequest queries payment status
+message GetPaymentStatusRequest {
+  string device_id = 1;
+  string payment_id = 2;
+}
+
+// PaymentStatus represents payment state
+message PaymentStatus {
+  string payment_id = 1;
+  PaymentState status = 2;
+  double amount = 3;
+  string currency = 4;
+  string card_type = 5;
+  string last_4 = 6;
+  string approval_code = 7;
+  string error = 8;
+  google.protobuf.Timestamp initiated_at = 9;
+  google.protobuf.Timestamp completed_at = 10;
+}
+
+// GetPaymentStatusResponse returns payment status
+message GetPaymentStatusResponse {
+  PaymentStatus status = 1;
+}
+
+// PaymentEvent represents a payment state change
+message PaymentEvent {
+  string payment_id = 1;
+  string event = 2;
+  PaymentState status = 3;
+  string message = 4;
+  google.protobuf.Timestamp timestamp = 5;
+}
+
+// SubscribePaymentRequest subscribes to payment events
+message SubscribePaymentRequest {
+  string device_id = 1;
+  string payment_id = 2;
+}

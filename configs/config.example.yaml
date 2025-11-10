@@ -1,0 +1,155 @@
+# Device Bridge v2 Configuration Example
+
+server:
+  grpc_port: 50051
+  http_port: 8080
+  metrics_port: 9090
+  host: "localhost"
+
+devices:
+  # ESC/POS Receipt Printer (TCP)
+  - id: printer-1
+    name: "Main Receipt Printer"
+    kind: "printer.escpos"
+    transport: "tcp"
+    address: "192.168.1.100"
+    port: 9100
+    enabled: true
+    tags:
+      - "lane-1"
+      - "front-desk"
+    metadata:
+      location: "Front Counter"
+      model: "Epson TM-T88V"
+
+  # ESC/POS Kitchen Printer (TCP)
+  - id: printer-kitchen-1
+    name: "Kitchen Printer"
+    kind: "printer.escpos"
+    transport: "tcp"
+    address: "192.168.1.101"
+    port: 9100
+    enabled: true
+    tags:
+      - "kitchen"
+    metadata:
+      location: "Kitchen Station A"
+
+  # Label Printer (ZPL over TCP)
+  - id: label-printer-1
+    name: "Label Printer"
+    kind: "printer.zpl"
+    transport: "tcp"
+    address: "192.168.1.102"
+    port: 9100
+    enabled: true
+    tags:
+      - "warehouse"
+
+  # USB Barcode Scanner
+  - id: scanner-1
+    name: "Main Barcode Scanner"
+    kind: "scanner.hid"
+    transport: "usb"
+    vendor_id: 0x05e0
+    product_id: 0x1200
+    enabled: true
+    tags:
+      - "lane-1"
+
+  # Serial Scale (Mettler Toledo)
+  - id: scale-1
+    name: "Weighing Scale"
+    kind: "scale.serial"
+    transport: "serial"
+    address: "/dev/ttyUSB0"
+    baud_rate: 9600
+    protocol: "mettler"
+    enabled: true
+    tags:
+      - "lane-1"
+    metadata:
+      model: "Mettler Toledo PS60"
+
+  # Customer Display (Serial)
+  - id: display-1
+    name: "Customer Display"
+    kind: "display.serial"
+    transport: "serial"
+    address: "/dev/ttyUSB1"
+    baud_rate: 9600
+    enabled: true
+    tags:
+      - "lane-1"
+
+  # Cash Drawer (via printer)
+  - id: drawer-1
+    name: "Cash Drawer"
+    kind: "drawer.printer"
+    transport: "printer"
+    address: "printer-1"  # References printer-1
+    enabled: true
+    tags:
+      - "lane-1"
+
+  # Payment Terminal (Mada - Saudi Arabia)
+  - id: payment-1
+    name: "Payment Terminal"
+    kind: "payment.mada"
+    transport: "tcp"
+    address: "192.168.1.200"
+    port: 8000
+    enabled: true
+    tags:
+      - "lane-1"
+    metadata:
+      terminal_id: "TERM001"
+      merchant_id: "MERCH001"
+
+  # Virtual Printer (for testing)
+  - id: virtual-printer-1
+    name: "Virtual Printer"
+    kind: "printer.virtual"
+    transport: "virtual"
+    enabled: false
+    tags:
+      - "testing"
+
+logging:
+  level: "info"   # debug, info, warn, error, fatal
+  format: "json"  # json or text
+
+telemetry:
+  metrics:
+    enabled: true
+  tracing:
+    enabled: false
+    exporter: "jaeger"
+    endpoint: "http://localhost:14268/api/traces"
+
+security:
+  mode: "development"  # development or production
+  tls:
+    enabled: false
+    cert_file: "/certs/server.crt"
+    key_file: "/certs/server.key"
+    ca_file: "/certs/ca.crt"
+  acl:
+    enabled: false
+    rules:
+      - client_id: "pos_app_1"
+        allowed_devices:
+          - "printer-*"
+          - "drawer-*"
+          - "display-*"
+        allowed_operations:
+          - "print"
+          - "open_drawer"
+          - "display_show"
+      - client_id: "payment_app"
+        allowed_devices:
+          - "payment-*"
+        allowed_operations:
+          - "start_payment"
+          - "cancel_payment"
+          - "get_payment_status"

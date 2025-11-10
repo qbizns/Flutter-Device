@@ -1,0 +1,55 @@
+syntax = "proto3";
+
+package devicebridge.v1;
+
+option go_package = "github.com/Macber-eg/Flutter-Device/proto/devicebridge/v1;devicebridgev1";
+
+import "google/protobuf/timestamp.proto";
+
+// WeightUnit defines weight measurement units
+enum WeightUnit {
+  WEIGHT_UNIT_UNSPECIFIED = 0;
+  WEIGHT_UNIT_KG = 1;
+  WEIGHT_UNIT_G = 2;
+  WEIGHT_UNIT_LB = 3;
+  WEIGHT_UNIT_OZ = 4;
+}
+
+// WeightReading represents a weight measurement
+message WeightReading {
+  double weight = 1;
+  WeightUnit unit = 2;
+  bool stable = 3;
+  google.protobuf.Timestamp timestamp = 4;
+}
+
+// GetWeightRequest requests current weight
+message GetWeightRequest {
+  string device_id = 1;
+  int32 timeout_ms = 2;
+}
+
+// GetWeightResponse returns weight reading
+message GetWeightResponse {
+  WeightReading reading = 1;
+}
+
+// ZeroScaleRequest zeros the scale
+message ZeroScaleRequest {
+  string device_id = 1;
+}
+
+// ZeroScaleResponse confirms zero operation
+message ZeroScaleResponse {
+  bool success = 1;
+}
+
+// TareScaleRequest tares the scale
+message TareScaleRequest {
+  string device_id = 1;
+}
+
+// TareScaleResponse confirms tare operation
+message TareScaleResponse {
+  bool success = 1;
+}

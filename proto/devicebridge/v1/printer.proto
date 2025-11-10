@@ -1,0 +1,129 @@
+syntax = "proto3";
+
+package devicebridge.v1;
+
+option go_package = "github.com/Macber-eg/Flutter-Device/proto/devicebridge/v1;devicebridgev1";
+
+import "proto/devicebridge/v1/common.proto";
+
+// Alignment defines text alignment
+enum Alignment {
+  ALIGNMENT_UNSPECIFIED = 0;
+  ALIGNMENT_LEFT = 1;
+  ALIGNMENT_CENTER = 2;
+  ALIGNMENT_RIGHT = 3;
+}
+
+// Font selection
+enum Font {
+  FONT_UNSPECIFIED = 0;
+  FONT_A = 1; // Usually 12x24
+  FONT_B = 2; // Usually 9x17
+}
+
+// TextStyle defines text formatting
+message TextStyle {
+  bool bold = 1;
+  bool underline = 2;
+  bool inverse = 3;
+  bool double_width = 4;
+  bool double_height = 5;
+  Font font = 6;
+}
+
+// Run represents styled text
+message Run {
+  string text = 1;
+  TextStyle style = 2;
+}
+
+// Line represents a single line of output
+message Line {
+  repeated Run runs = 1;
+  Alignment alignment = 2;
+}
+
+// BarcodeSymbology defines barcode types
+enum BarcodeSymbology {
+  BARCODE_SYMBOLOGY_UNSPECIFIED = 0;
+  BARCODE_SYMBOLOGY_UPCA = 1;
+  BARCODE_SYMBOLOGY_UPCE = 2;
+  BARCODE_SYMBOLOGY_EAN13 = 3;
+  BARCODE_SYMBOLOGY_EAN8 = 4;
+  BARCODE_SYMBOLOGY_CODE39 = 5;
+  BARCODE_SYMBOLOGY_CODE128 = 6;
+  BARCODE_SYMBOLOGY_ITF = 7;
+  BARCODE_SYMBOLOGY_CODABAR = 8;
+}
+
+// Barcode represents a 1D barcode
+message Barcode {
+  string data = 1;
+  BarcodeSymbology symbology = 2;
+  int32 height = 3;
+  int32 width = 4;
+}
+
+// QRCode represents a QR code
+message QRCode {
+  string data = 1;
+  int32 size = 2;
+}
+
+// Image represents a bitmap image
+message Image {
+  bytes data = 1; // PNG or JPEG
+  int32 width = 2;
+  int32 height = 3;
+}
+
+// Element can be text lines, barcode, QR code, or image
+message Element {
+  oneof element {
+    Line line = 1;
+    Barcode barcode = 2;
+    QRCode qr_code = 3;
+    Image image = 4;
+  }
+}
+
+// Section represents a logical grouping
+message Section {
+  repeated Element elements = 1;
+}
+
+// PrintDocument represents a complete print job
+message PrintDocument {
+  repeated Section sections = 1;
+  PrintOptions options = 2;
+}
+
+// PrintOptions contains print job options
+message PrintOptions {
+  bool cut = 1;
+  bool drawer_pulse = 2;
+  int32 copies = 3;
+}
+
+// PrintRequest initiates a print job
+message PrintRequest {
+  string device_id = 1;
+  PrintDocument document = 2;
+  string idempotency_key = 3;
+}
+
+// PrintResponse returns the job ID
+message PrintResponse {
+  string job_id = 1;
+}
+
+// OpenDrawerRequest opens a cash drawer
+message OpenDrawerRequest {
+  string device_id = 1;
+}
+
+// OpenDrawerResponse confirms drawer opening
+message OpenDrawerResponse {
+  bool success = 1;
+  google.protobuf.Timestamp opened_at = 2;
+}

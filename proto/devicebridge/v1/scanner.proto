@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package devicebridge.v1;
+
+option go_package = "github.com/Macber-eg/Flutter-Device/proto/devicebridge/v1;devicebridgev1";
+
+import "google/protobuf/timestamp.proto";
+
+// ScanEvent represents a barcode/QR scan
+message ScanEvent {
+  string device_id = 1;
+  string data = 2;
+  string symbology = 3;
+  google.protobuf.Timestamp timestamp = 4;
+  string event_id = 5;
+}
+
+// SubscribeScannerRequest subscribes to scanner events
+message SubscribeScannerRequest {
+  string device_id = 1;
+}

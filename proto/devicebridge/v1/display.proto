@@ -1,0 +1,38 @@
+syntax = "proto3";
+
+package devicebridge.v1;
+
+option go_package = "github.com/Macber-eg/Flutter-Device/proto/devicebridge/v1;devicebridgev1";
+
+// ShowDisplayRequest shows text on customer display
+message ShowDisplayRequest {
+  string device_id = 1;
+  repeated string lines = 2;
+  int32 duration_ms = 3; // 0 = permanent
+}
+
+// ShowDisplayResponse confirms display update
+message ShowDisplayResponse {
+  bool success = 1;
+}
+
+// ClearDisplayRequest clears the display
+message ClearDisplayRequest {
+  string device_id = 1;
+}
+
+// ClearDisplayResponse confirms clear operation
+message ClearDisplayResponse {
+  bool success = 1;
+}
+
+// SetBrightnessRequest sets display brightness
+message SetBrightnessRequest {
+  string device_id = 1;
+  int32 brightness = 2; // 0-100
+}
+
+// SetBrightnessResponse confirms brightness change
+message SetBrightnessResponse {
+  bool success = 1;
+}
