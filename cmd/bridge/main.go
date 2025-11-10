@@ -15,6 +15,7 @@ import (
 
 	grpcapi "github.com/Macber-eg/Flutter-Device/internal/api/grpc"
 	"github.com/Macber-eg/Flutter-Device/internal/api/rest"
+	"github.com/Macber-eg/Flutter-Device/internal/api/ws"
 	"github.com/Macber-eg/Flutter-Device/internal/app"
 	"github.com/Macber-eg/Flutter-Device/internal/config"
 	"github.com/Macber-eg/Flutter-Device/internal/devices"
@@ -178,15 +179,30 @@ func main() {
 	}
 	logger.Info("starting REST gateway", telemetry.Int("port", cfg.Server.HTTPPort))
 
-	// Serve Swagger UI
+	// Create WebSocket server
+	wsServer := ws.NewServer(ws.Config{
+		Registry: registry,
+		EventBus: eventBus,
+		Logger:   logger,
+	})
+	wsServer.Start(ctx)
+	logger.Info("starting WebSocket server", telemetry.Int("port", cfg.Server.HTTPPort))
+
+	// Serve Swagger UI and WebSocket endpoints
 	mux := http.NewServeMux()
 	rest.AddSwaggerRoutes(mux, "docs/api/devicebridge.swagger.json")
+	wsServer.RegisterRoutes(mux)
 	go func() {
 		addr := fmt.Sprintf(":%d", cfg.Server.HTTPPort)
 		logger.Info("swagger UI available", telemetry.String("url", fmt.Sprintf("http://localhost:%d/swagger/", cfg.Server.HTTPPort)))
-		// Note: The REST server handles /v1/* routes, Swagger handles /swagger/*
+		logger.Info("websocket endpoints available",
+			telemetry.String("scanner", fmt.Sprintf("ws://localhost:%d/ws/scanner/:device_id", cfg.Server.HTTPPort)),
+			telemetry.String("payment", fmt.Sprintf("ws://localhost:%d/ws/payment/:device_id", cfg.Server.HTTPPort)),
+			telemetry.String("devices", fmt.Sprintf("ws://localhost:%d/ws/devices", cfg.Server.HTTPPort)),
+		)
+		// Note: The REST server handles /v1/* routes, Swagger handles /swagger/*, WebSocket handles /ws/*
 		if err := http.ListenAndServe(addr, mux); err != nil && err != http.ErrServerClosed {
-			logger.Error("Swagger server failed", telemetry.Error(err))
+			logger.Error("HTTP server failed", telemetry.Error(err))
 		}
 	}()
 
@@ -201,10 +217,11 @@ func main() {
 	fmt.Printf("║           Device Bridge v%s                         ║\n", version)
 	fmt.Printf("╠═══════════════════════════════════════════════════════════╣\n")
 	fmt.Printf("║  Status: Running                                          ║\n")
-	fmt.Printf("║  gRPC:   localhost:%d                                  ║\n", cfg.Server.GRPCPort)
-	fmt.Printf("║  REST:   http://localhost:%d/v1                        ║\n", cfg.Server.HTTPPort)
-	fmt.Printf("║  Swagger: http://localhost:%d/swagger                  ║\n", cfg.Server.HTTPPort)
-	fmt.Printf("║  Metrics: http://localhost:%d/metrics                  ║\n", cfg.Server.MetricsPort)
+	fmt.Printf("║  gRPC:      localhost:%d                               ║\n", cfg.Server.GRPCPort)
+	fmt.Printf("║  REST:      http://localhost:%d/v1                     ║\n", cfg.Server.HTTPPort)
+	fmt.Printf("║  WebSocket: ws://localhost:%d/ws                       ║\n", cfg.Server.HTTPPort)
+	fmt.Printf("║  Swagger:   http://localhost:%d/swagger                ║\n", cfg.Server.HTTPPort)
+	fmt.Printf("║  Metrics:   http://localhost:%d/metrics                ║\n", cfg.Server.MetricsPort)
 	fmt.Printf("║                                                           ║\n")
 	fmt.Printf("║  Devices: %d registered                                    ║\n", registry.Count())
 	fmt.Printf("║                                                           ║\n")
@@ -222,6 +239,10 @@ func main() {
 	// Graceful shutdown
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
+
+	// Stop WebSocket server
+	logger.Info("stopping WebSocket server")
+	wsServer.Stop()
 
 	// Stop REST server
 	logger.Info("stopping REST server")

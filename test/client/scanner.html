@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scanner WebSocket Test - Device Bridge</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        .header {
+            background: #4a5568;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        .header h1 {
+            margin-bottom: 10px;
+        }
+        .status {
+            padding: 3px 10px;
+            border-radius: 3px;
+            font-size: 12px;
+            display: inline-block;
+            margin-top: 10px;
+        }
+        .status.connected {
+            background: #48bb78;
+        }
+        .status.disconnected {
+            background: #f56565;
+        }
+        .controls {
+            padding: 20px;
+            background: #f7fafc;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #2d3748;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #cbd5e0;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        button {
+            padding: 10px 20px;
+            background: #4299e1;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 10px;
+        }
+        button:hover {
+            background: #3182ce;
+        }
+        button:disabled {
+            background: #cbd5e0;
+            cursor: not-allowed;
+        }
+        .events {
+            padding: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .event {
+            background: #edf2f7;
+            border-left: 4px solid #4299e1;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            animation: slideIn 0.3s ease;
+        }
+        @keyframes slideIn {
+            from {
+                transform: translateX(-10px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        .event .timestamp {
+            font-size: 11px;
+            color: #718096;
+            margin-bottom: 5px;
+        }
+        .event .barcode {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2d3748;
+            font-family: 'Courier New', monospace;
+            margin: 10px 0;
+        }
+        .event .symbology {
+            font-size: 12px;
+            color: #4a5568;
+            background: #e2e8f0;
+            padding: 2px 8px;
+            border-radius: 3px;
+            display: inline-block;
+        }
+        .footer {
+            padding: 15px 20px;
+            background: #f7fafc;
+            border-top: 1px solid #e2e8f0;
+            font-size: 12px;
+            color: #718096;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔍 Scanner WebSocket Test</h1>
+            <p>Device Bridge v2 - Real-time Barcode Scanning</p>
+            <span id="status" class="status disconnected">DISCONNECTED</span>
+        </div>
+
+        <div class="controls">
+            <div class="form-group">
+                <label for="deviceId">Device ID:</label>
+                <input type="text" id="deviceId" value="virtual-scanner-1" placeholder="Enter device ID">
+            </div>
+            <div class="form-group">
+                <label for="wsUrl">WebSocket URL:</label>
+                <input type="text" id="wsUrl" value="ws://localhost:8080/ws/scanner/" placeholder="ws://localhost:8080/ws/scanner/">
+            </div>
+            <button id="connectBtn" onclick="connect()">Connect</button>
+            <button id="disconnectBtn" onclick="disconnect()" disabled>Disconnect</button>
+            <button onclick="clearEvents()">Clear Events</button>
+        </div>
+
+        <div class="events" id="events">
+            <p style="color: #a0aec0; text-align: center; padding: 40px;">
+                No scan events yet. Connect to a scanner and scan a barcode.
+            </p>
+        </div>
+
+        <div class="footer">
+            <strong>Instructions:</strong> Enter your scanner device ID, click Connect, then scan barcodes.
+            Real-time scan events will appear above.
+        </div>
+    </div>
+
+    <script>
+        let ws = null;
+        let reconnectInterval = null;
+
+        function connect() {
+            const deviceId = document.getElementById('deviceId').value;
+            const wsUrl = document.getElementById('wsUrl').value;
+
+            if (!deviceId) {
+                alert('Please enter a device ID');
+                return;
+            }
+
+            const fullUrl = wsUrl + deviceId;
+
+            document.getElementById('connectBtn').disabled = true;
+
+            try {
+                ws = new WebSocket(fullUrl);
+
+                ws.onopen = function() {
+                    console.log('WebSocket connected');
+                    updateStatus(true);
+                    document.getElementById('disconnectBtn').disabled = false;
+
+                    addSystemEvent('Connected to scanner: ' + deviceId);
+                };
+
+                ws.onmessage = function(event) {
+                    console.log('Received:', event.data);
+                    const data = JSON.parse(event.data);
+                    addScanEvent(data);
+                };
+
+                ws.onerror = function(error) {
+                    console.error('WebSocket error:', error);
+                    addSystemEvent('Connection error: ' + error.message);
+                };
+
+                ws.onclose = function() {
+                    console.log('WebSocket closed');
+                    updateStatus(false);
+                    document.getElementById('connectBtn').disabled = false;
+                    document.getElementById('disconnectBtn').disabled = true;
+
+                    addSystemEvent('Disconnected from scanner');
+                    ws = null;
+                };
+            } catch (error) {
+                console.error('Failed to connect:', error);
+                alert('Failed to connect: ' + error.message);
+                document.getElementById('connectBtn').disabled = false;
+            }
+        }
+
+        function disconnect() {
+            if (ws) {
+                ws.close();
+            }
+        }
+
+        function updateStatus(connected) {
+            const statusEl = document.getElementById('status');
+            if (connected) {
+                statusEl.className = 'status connected';
+                statusEl.textContent = 'CONNECTED';
+            } else {
+                statusEl.className = 'status disconnected';
+                statusEl.textContent = 'DISCONNECTED';
+            }
+        }
+
+        function addScanEvent(data) {
+            const eventsDiv = document.getElementById('events');
+
+            // Clear placeholder message
+            if (eventsDiv.querySelector('p')) {
+                eventsDiv.innerHTML = '';
+            }
+
+            const eventDiv = document.createElement('div');
+            eventDiv.className = 'event';
+
+            const timestamp = new Date(data.timestamp).toLocaleString();
+
+            eventDiv.innerHTML = `
+                <div class="timestamp">${timestamp}</div>
+                <div class="barcode">${data.data || 'N/A'}</div>
+                <span class="symbology">${data.type || 'UNKNOWN'}</span>
+            `;
+
+            eventsDiv.insertBefore(eventDiv, eventsDiv.firstChild);
+
+            // Keep only last 20 events
+            while (eventsDiv.children.length > 20) {
+                eventsDiv.removeChild(eventsDiv.lastChild);
+            }
+        }
+
+        function addSystemEvent(message) {
+            const eventsDiv = document.getElementById('events');
+
+            // Clear placeholder message
+            if (eventsDiv.querySelector('p')) {
+                eventsDiv.innerHTML = '';
+            }
+
+            const eventDiv = document.createElement('div');
+            eventDiv.className = 'event';
+            eventDiv.style.borderLeftColor = '#a0aec0';
+
+            const timestamp = new Date().toLocaleString();
+
+            eventDiv.innerHTML = `
+                <div class="timestamp">${timestamp}</div>
+                <div style="color: #4a5568;">${message}</div>
+            `;
+
+            eventsDiv.insertBefore(eventDiv, eventsDiv.firstChild);
+        }
+
+        function clearEvents() {
+            const eventsDiv = document.getElementById('events');
+            eventsDiv.innerHTML = `
+                <p style="color: #a0aec0; text-align: center; padding: 40px;">
+                    No scan events yet. Connect to a scanner and scan a barcode.
+                </p>
+            `;
+        }
+
+        // Auto-connect on page load if device ID is set
+        window.addEventListener('load', function() {
+            const deviceId = document.getElementById('deviceId').value;
+            if (deviceId) {
+                setTimeout(connect, 500);
+            }
+        });
+    </script>
+</body>
+</html>
