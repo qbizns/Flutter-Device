@@ -117,6 +117,10 @@ func main() {
 			// Create virtual scanner
 			device = virtual_devices.NewVirtualScanner(devCfg.ID, devCfg.Name, logger, eventBus)
 
+		case "scale.virtual":
+			// Create virtual scale
+			device = virtual_devices.NewVirtualScale(devCfg.ID, devCfg.Name, logger)
+
 		default:
 			logger.Warn("unsupported device kind",
 				telemetry.String("device_id", devCfg.ID),

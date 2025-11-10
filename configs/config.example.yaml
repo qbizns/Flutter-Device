@@ -124,6 +124,15 @@ devices:
     tags:
       - "testing"
 
+  # Virtual Scale (for testing)
+  - id: virtual-scale-1
+    name: "Virtual Scale"
+    kind: "scale.virtual"
+    transport: "virtual"
+    enabled: true
+    tags:
+      - "testing"
+
 logging:
   level: "info"   # debug, info, warn, error, fatal
   format: "json"  # json or text
