@@ -13,7 +13,11 @@ This guide covers setup, configuration, and usage of the payment terminal driver
 - [Transaction Types](#transaction-types)
 - [Security & PCI DSS](#security--pci-dss)
 - [API Reference](#api-reference)
+- [Payment Providers](#payment-providers)
+  - [Mada Provider (Saudi Arabia)](#mada-provider-saudi-arabia)
+  - [KNET Provider (Kuwait)](#knet-provider-kuwait)
 - [Testing](#testing)
+  - [Payment Simulator](#payment-simulator)
 - [Troubleshooting](#troubleshooting)
 - [Production Deployment](#production-deployment)
 
@@ -512,7 +516,253 @@ ws.onmessage = (event) => {
 };
 ```
 
+## Payment Providers
+
+Device Bridge v2 includes specialized payment providers for regional networks with network-specific validation, formatting, and receipt generation.
+
+### Mada Provider (Saudi Arabia)
+
+The Mada provider implements Saudi Arabia's domestic payment network requirements.
+
+**Features:**
+- Currency: SAR (Saudi Riyal) with halalas as smallest unit (1 SAR = 100 halalas)
+- Transaction limits: 1.00 SAR (min) to 100,000 SAR (max)
+- BIN detection for 23+ Mada card ranges
+- Arabic-English bilingual receipts
+- Supported transactions: Sale, Void, Refund
+
+**Configuration:**
+
+```yaml
+devices:
+  - id: mada-terminal-01
+    name: "Mada Terminal"
+    kind: payment.tcp
+    metadata:
+      host: "192.168.1.100"
+      port: "3000"
+      terminal_id: "MADA001"
+      merchant_id: "MADA_MERCH_12345"
+      provider: "mada"
+      use_tls: "true"
+```
+
+**Usage Example:**
+
+```go
+// Create Mada provider
+config := payment_tcp.ConnectionConfig{
+    Host:       "192.168.1.100",
+    Port:       3000,
+    TerminalID: "MADA001",
+    MerchantID: "MADA_MERCH_12345",
+    Provider:   "mada",
+}
+
+driver := payment_tcp.NewDriver("mada-01", "Mada Terminal", config)
+provider := payment_tcp.NewMadaProvider(driver)
+
+// Process transaction (currency defaults to SAR)
+req := payment_tcp.TransactionRequest{
+    Type:     payment_tcp.TransactionSale,
+    Amount:   10000, // 100.00 SAR
+    Currency: "SAR", // Optional, defaults to SAR
+}
+
+resp, err := provider.ProcessTransaction(ctx, req)
+```
+
+**Mada-Specific Functions:**
+
+```go
+// Format amount in halalas to SAR string
+formatted := provider.FormatAmount(10000)  // Returns "100.00 SAR"
+
+// Parse SAR string to halalas
+halalas, err := provider.ParseAmount("100.00 SAR")  // Returns 10000
+
+// Check if card is Mada
+isMada := provider.isMadaCard("400861****1234")  // Returns true
+
+// Get transaction limits
+limits := provider.GetMadaTransactionLimits()
+// Returns: {"min_amount_halalas": 100, "max_amount_halalas": 10000000, "currency": "SAR"}
+```
+
+### KNET Provider (Kuwait)
+
+The KNET provider implements Kuwait's National Electronic Transfer requirements.
+
+**Features:**
+- Currency: KWD (Kuwaiti Dinar) with fils as smallest unit (1 KWD = 1000 fils)
+- Transaction limits: 0.100 KWD (min) to 5,000 KWD (max)
+- BIN detection for KNET Visa, MasterCard, and debit cards
+- Arabic-English bilingual receipts
+- 3 decimal place precision (KWD uses 3 decimals)
+- Supported transactions: Sale, Void, Refund
+
+**Configuration:**
+
+```yaml
+devices:
+  - id: knet-terminal-01
+    name: "KNET Terminal"
+    kind: payment.tcp
+    metadata:
+      host: "192.168.1.101"
+      port: "3000"
+      terminal_id: "KNET001"
+      merchant_id: "KNET_MERCH_12345"
+      provider: "knet"
+      use_tls: "true"
+```
+
+**Usage Example:**
+
+```go
+// Create KNET provider
+config := payment_tcp.ConnectionConfig{
+    Host:       "192.168.1.101",
+    Port:       3000,
+    TerminalID: "KNET001",
+    MerchantID: "KNET_MERCH_12345",
+    Provider:   "knet",
+}
+
+driver := payment_tcp.NewDriver("knet-01", "KNET Terminal", config)
+provider := payment_tcp.NewKNETProvider(driver)
+
+// Process transaction (currency defaults to KWD)
+req := payment_tcp.TransactionRequest{
+    Type:     payment_tcp.TransactionSale,
+    Amount:   10000, // 10.000 KWD
+    Currency: "KWD", // Optional, defaults to KWD
+}
+
+resp, err := provider.ProcessTransaction(ctx, req)
+```
+
+**KNET-Specific Functions:**
+
+```go
+// Format amount in fils to KWD string
+formatted := provider.FormatAmount(10000)  // Returns "10.000 KWD"
+
+// Parse KWD string to fils
+fils, err := provider.ParseAmount("10.000 KWD")  // Returns 10000
+
+// Check if card is KNET
+isKNET := provider.isKNETCard("420644****1234")  // Returns true
+
+// Get card type
+cardType := provider.GetKNETCardType("420644****1234")  // Returns "knet-visa"
+
+// Get transaction limits
+limits := provider.GetKNETTransactionLimits()
+// Returns: {"min_amount_fils": 100, "max_amount_fils": 5000000, "currency": "KWD", "decimal_places": 3}
+```
+
+### Provider Comparison
+
+| Feature | Mada | KNET |
+|---------|------|------|
+| **Country** | Saudi Arabia | Kuwait |
+| **Currency** | SAR (100 halalas) | KWD (1000 fils) |
+| **Min Amount** | 1.00 SAR | 0.100 KWD |
+| **Max Amount** | 100,000 SAR | 5,000 KWD |
+| **Decimals** | 2 places | 3 places |
+| **Pre-auth** | Supported | Not supported |
+| **Balance Inquiry** | Not supported | Not supported |
+
 ## Testing
+
+### Payment Simulator
+
+The built-in payment simulator enables development and testing without physical terminals or network connectivity.
+
+**Features:**
+- Simulates terminal responses based on transaction amount
+- Supports all transaction types (Sale, Void, Refund, Settlement)
+- Configurable approval/decline logic
+- No network required
+- Tracks transaction history
+
+**Configuration:**
+
+```yaml
+devices:
+  - id: simulator
+    name: "Payment Simulator"
+    kind: payment.tcp
+    metadata:
+      provider: "simulator"
+      terminal_id: "SIM00001"
+      merchant_id: "SIM_MERCHANT"
+```
+
+**Approval Logic:**
+
+The simulator uses the last 2 digits of the transaction amount to determine the response:
+
+| Amount Last 2 Digits | Response Code | Message |
+|---------------------|---------------|---------|
+| `00` | 00 | Approved |
+| `05` | 51 | Insufficient funds |
+| `54` | 54 | Expired card |
+| `55` | 55 | Incorrect PIN |
+| `91` | 91 | Issuer unavailable |
+| Other | 00 | Approved |
+
+**Usage Example:**
+
+```go
+// Create simulator driver
+driver := payment_tcp.NewSimulatorDriver("sim-01", "Test Simulator")
+
+// Connect (always succeeds)
+err := driver.Connect(context.Background())
+
+// Test approved transaction
+approvedReq := payment_tcp.TransactionRequest{
+    Type:     payment_tcp.TransactionSale,
+    Amount:   10000, // Ends in 00, will be approved
+    Currency: "SAR",
+}
+approvedResp, _ := driver.ProcessTransaction(ctx, approvedReq)
+// approvedResp.Success == true, approvedResp.ResponseCode == "00"
+
+// Test declined transaction
+declinedReq := payment_tcp.TransactionRequest{
+    Type:     payment_tcp.TransactionSale,
+    Amount:   10005, // Ends in 05, will be declined (insufficient funds)
+    Currency: "SAR",
+}
+declinedResp, _ := driver.ProcessTransaction(ctx, declinedReq)
+// declinedResp.Success == false, declinedResp.ResponseCode == "51"
+```
+
+**Test Helper:**
+
+Use the `SimulatorTestHelper` for easier test creation:
+
+```go
+func TestPaymentFlow(t *testing.T) {
+    helper := payment_tcp.NewSimulatorTestHelper()
+
+    // Create approved transaction
+    approvedReq := helper.CreateApprovedTransaction(5000)
+    approvedResp, err := helper.ProcessTestTransaction(approvedReq)
+    assert.NoError(t, err)
+    assert.True(t, approvedResp.Success)
+
+    // Create declined transaction
+    declinedReq := helper.CreateDeclinedTransaction(5000, "insufficient_funds")
+    declinedResp, err := helper.ProcessTestTransaction(declinedReq)
+    assert.NoError(t, err)
+    assert.False(t, declinedResp.Success)
+    assert.Equal(t, "51", declinedResp.ResponseCode)
+}
+```
 
 ### Local Simulator
 
