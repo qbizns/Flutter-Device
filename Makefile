@@ -1,4 +1,4 @@
-.PHONY: all build test test-unit test-integration test-coverage lint clean proto docker help
+.PHONY: all build test test-unit test-integration test-hardware test-coverage bench lint clean proto docker help
 
 # Variables
 BINARY_NAME=bridge
@@ -18,7 +18,9 @@ help:
 	@echo "  test               - Run all tests"
 	@echo "  test-unit          - Run unit tests"
 	@echo "  test-integration   - Run integration tests"
+	@echo "  test-hardware      - Run hardware tests (requires physical devices)"
 	@echo "  test-coverage      - Run tests with coverage"
+	@echo "  bench              - Run benchmarks"
 	@echo "  lint               - Run linters"
 	@echo "  fmt                - Format code"
 	@echo "  clean              - Clean build artifacts"
@@ -45,6 +47,19 @@ test-integration:
 	@echo "Running integration tests..."
 	$(GO) test -v -race -tags=integration ./test/integration/...
 	@echo "✓ Integration tests passed"
+
+test-hardware:
+	@echo "Running hardware tests (requires physical devices)..."
+	@echo "Note: Ensure USB HID scanner is connected and configured"
+	@echo "See test/hardware/README.md for setup instructions"
+	@echo ""
+	$(GO) test -v -tags=hardware ./test/hardware/...
+	@echo "✓ Hardware tests passed"
+
+bench:
+	@echo "Running benchmarks..."
+	$(GO) test -bench=. -benchmem -run=^$$ ./...
+	@echo "✓ Benchmarks complete"
 
 test-coverage:
 	@echo "Running tests with coverage..."
