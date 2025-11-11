@@ -354,6 +354,7 @@ func TestCreateProtocol(t *testing.T) {
 		{"mt-sics", "mt-sics", false},
 		{"mettler", "mettler", false},
 		{"cas", "cas", false},
+		{"generic", "generic", false},
 		{"unknown", "unknown", true},
 		{"empty", "", true},
 	}

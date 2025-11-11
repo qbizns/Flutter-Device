@@ -393,6 +393,8 @@ func createProtocol(name string) (Protocol, error) {
 		return NewMTSICSProtocol(), nil
 	case "cas":
 		return NewCASProtocol(), nil
+	case "generic":
+		return NewGenericProtocol(), nil
 	default:
 		return nil, fmt.Errorf("unknown protocol: %s", name)
 	}

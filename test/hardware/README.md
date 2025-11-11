@@ -312,16 +312,122 @@ jobs:
           SCANNER_PRODUCT_ID: "1200"
 ```
 
+## Serial Scale Tests
+
+Serial scale hardware tests are available in `test/hardware/scale_serial_test.go`.
+
+### Running Scale Tests
+
+#### Auto-detect scale (default /dev/ttyUSB0, 9600 baud, MT-SICS):
+```bash
+go test -tags=hardware -v ./test/hardware/ -run TestScale
+```
+
+#### Specify scale configuration:
+```bash
+SCALE_PORT=/dev/ttyUSB0 \
+SCALE_BAUD_RATE=9600 \
+SCALE_PROTOCOL=mtsics \
+go test -tags=hardware -v ./test/hardware/ -run TestScale
+```
+
+#### Supported protocols:
+- `mtsics` - Mettler Toledo Standard Interface Command Set (default)
+- `cas` - CAS protocol for Asian/retail scales
+- `generic` - Generic configurable protocol
+
+### Available Scale Tests
+
+1. **TestScaleConnection** - Test basic connection to scale
+2. **TestScaleReadWeight** - Read weight from scale (place object)
+3. **TestScaleMultipleReads** - Read weight 5 times with intervals
+4. **TestScaleZero** - Test zero operation
+5. **TestScaleTare** - Test tare operation (interactive)
+6. **TestScaleStability** - Test stable weight detection
+7. **TestScalePortEnumeration** - List available serial ports
+8. **TestScalePerformance** - 100 reads performance test
+
+### Running Individual Scale Tests
+
+```bash
+# Test connection only
+SCALE_PORT=/dev/ttyUSB0 go test -tags=hardware -v ./test/hardware/ -run TestScaleConnection
+
+# Test weight reading
+SCALE_PORT=/dev/ttyUSB0 go test -tags=hardware -v ./test/hardware/ -run TestScaleReadWeight
+
+# Test zero operation
+SCALE_PORT=/dev/ttyUSB0 go test -tags=hardware -v ./test/hardware/ -run TestScaleZero
+
+# Test performance
+SCALE_PORT=/dev/ttyUSB0 go test -tags=hardware -v ./test/hardware/ -run TestScalePerformance
+```
+
+### Scale Hardware Setup
+
+**Linux:**
+1. Connect scale via USB-to-serial adapter
+2. Identify port: `ls /dev/ttyUSB*`
+3. Set permissions: `sudo usermod -a -G dialout $USER` (logout/login required)
+4. Set environment: `export SCALE_PORT=/dev/ttyUSB0`
+
+**macOS:**
+1. Connect scale via USB-to-serial adapter
+2. Identify port: `ls /dev/cu.*`
+3. Set environment: `export SCALE_PORT=/dev/cu.usbserial-1420`
+
+**Windows:**
+1. Connect scale via USB-to-serial adapter
+2. Open Device Manager → Ports (COM & LPT)
+3. Note COM port number (e.g., COM3)
+4. Set environment: `$env:SCALE_PORT="COM3"` (PowerShell)
+
+### Scale Test Examples
+
+**Test MT-SICS scale:**
+```bash
+SCALE_PORT=/dev/ttyUSB0 \
+SCALE_PROTOCOL=mtsics \
+go test -tags=hardware -v ./test/hardware/ -run TestScaleReadWeight
+```
+
+**Test CAS scale:**
+```bash
+SCALE_PORT=/dev/ttyUSB0 \
+SCALE_PROTOCOL=cas \
+go test -tags=hardware -v ./test/hardware/ -run TestScaleReadWeight
+```
+
+**Test with higher baud rate:**
+```bash
+SCALE_PORT=/dev/ttyUSB0 \
+SCALE_BAUD_RATE=19200 \
+go test -tags=hardware -v ./test/hardware/ -run TestScaleConnection
+```
+
+### CI/CD Integration for Scales
+
+```yaml
+- name: Scale Hardware Tests
+  if: ${{ inputs.run_scale_tests }}
+  run: |
+    go test -tags=hardware -v ./test/hardware/ -run TestScale
+  env:
+    SCALE_PORT: "/dev/ttyUSB0"
+    SCALE_PROTOCOL: "mtsics"
+    SCALE_BAUD_RATE: "9600"
+```
+
+### Benchmarking Scale Performance
+
+```bash
+SCALE_PORT=/dev/ttyUSB0 \
+go test -tags=hardware -bench=BenchmarkScale -benchmem ./test/hardware/
+```
+
 ## Future Tests
 
 Planned hardware test additions:
-
-### Week 4-6: Serial Scales
-- `test/hardware/scale_serial_test.go`
-- Test serial communication
-- Test weight reading
-- Test tare/zero
-- Test different protocols
 
 ### Week 7-9: Payment Terminals
 - `test/hardware/payment_tcp_test.go`
@@ -333,8 +439,10 @@ Planned hardware test additions:
 ## Resources
 
 - [Scanner Setup Guide](../../docs/SCANNER_SETUP.md)
+- [Scale Setup Guide](../../docs/SCALE_SETUP.md)
 - [Building Guide](../../docs/BUILDING.md)
 - [USB Library Evaluation](../../docs/USB_LIBRARY_EVALUATION.md)
+- [Serial Scale Protocols](../../docs/SERIAL_SCALE_PROTOCOLS.md)
 - [Phase 3 Roadmap](../../PHASE_3_ROADMAP.md)
 
 ## Support
