@@ -1,0 +1,152 @@
+# Prometheus Configuration for Payment Terminal Driver Monitoring
+# Version: 1.0
+# Last Updated: 2025-11-11
+
+global:
+  # How frequently to scrape targets
+  scrape_interval: 15s
+
+  # How long until a scrape request times out
+  scrape_timeout: 10s
+
+  # How frequently to evaluate rules
+  evaluation_interval: 15s
+
+  # External labels to attach to any time series or alerts
+  external_labels:
+    cluster: 'payment-terminal'
+    environment: 'production'
+    region: 'us-east-1'
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - 'alertmanager:9093'
+      timeout: 10s
+      api_version: v2
+
+# Load rules once and periodically evaluate them
+rule_files:
+  - 'payment_alerts.yml'
+  - 'payment_recording_rules.yml'
+
+# Scrape configurations
+scrape_configs:
+  # Payment Terminal Driver metrics
+  - job_name: 'payment-terminal-driver'
+    scrape_interval: 10s
+    scrape_timeout: 5s
+    metrics_path: '/metrics'
+
+    # Service discovery via static config
+    # In production, use kubernetes_sd_configs or consul_sd_configs
+    static_configs:
+      - targets:
+          - 'device-bridge:9090'
+        labels:
+          service: 'device-bridge'
+          component: 'payment-driver'
+
+    # Relabeling to extract device_id from instance
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+      - source_labels: [__address__]
+        regex: '([^:]+):.*'
+        target_label: host
+        replacement: '$1'
+
+  # Payment Terminal Driver - High Frequency Metrics
+  # For critical real-time monitoring (transaction failures, errors)
+  - job_name: 'payment-terminal-driver-critical'
+    scrape_interval: 5s
+    scrape_timeout: 3s
+    metrics_path: '/metrics'
+
+    static_configs:
+      - targets:
+          - 'device-bridge:9090'
+        labels:
+          service: 'device-bridge'
+          component: 'payment-driver'
+          priority: 'critical'
+
+    # Only scrape critical metrics
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: 'payment_(errors_total|connection_failures_total|transaction_timeouts_total).*'
+        action: keep
+
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    scrape_interval: 30s
+    static_configs:
+      - targets:
+          - 'localhost:9090'
+        labels:
+          service: 'prometheus'
+
+  # Node Exporter - System metrics
+  - job_name: 'node-exporter'
+    scrape_interval: 30s
+    static_configs:
+      - targets:
+          - 'node-exporter:9100'
+        labels:
+          service: 'node-exporter'
+          component: 'system-metrics'
+
+  # Application metrics (if using separate app server)
+  - job_name: 'device-bridge-app'
+    scrape_interval: 15s
+    metrics_path: '/metrics'
+    static_configs:
+      - targets:
+          - 'device-bridge:8080'
+        labels:
+          service: 'device-bridge'
+          component: 'application'
+
+# Remote write configuration (optional - for long-term storage)
+# remote_write:
+#   - url: 'https://prometheus-remote-storage.example.com/api/v1/write'
+#     remote_timeout: 30s
+#     queue_config:
+#       capacity: 10000
+#       max_shards: 10
+#       min_shards: 1
+#       max_samples_per_send: 5000
+#       batch_send_deadline: 5s
+#       min_backoff: 30ms
+#       max_backoff: 100ms
+#     write_relabel_configs:
+#       # Only send critical metrics to remote storage
+#       - source_labels: [__name__]
+#         regex: 'payment_(transactions_total|errors_total|transaction_duration_seconds.*).*'
+#         action: keep
+
+# Remote read configuration (optional)
+# remote_read:
+#   - url: 'https://prometheus-remote-storage.example.com/api/v1/read'
+#     read_recent: true
+
+# Storage configuration
+storage:
+  tsdb:
+    # How long to retain samples in storage
+    retention.time: 15d
+
+    # Maximum size of storage (overrides retention.time if reached first)
+    retention.size: 50GB
+
+    # Compress old blocks
+    wal_compression: true
+
+# Tracing configuration (optional - for distributed tracing)
+# tracing:
+#   endpoint: "jaeger:14268/api/traces"
+#   client_type: "http"
+#   sampling_fraction: 0.1
+#   insecure: false

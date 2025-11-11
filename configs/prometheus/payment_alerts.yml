@@ -1,0 +1,331 @@
+# Payment Terminal Driver - Alerting Rules
+# Version: 1.0
+# Last Updated: 2025-11-11
+
+groups:
+  # Critical Alerts - Immediate action required
+  - name: payment_critical_alerts
+    interval: 30s
+    rules:
+      # High error rate
+      - alert: PaymentHighErrorRate
+        expr: |
+          (
+            sum(rate(payment_errors_total[5m])) by (device_id, error_type)
+            /
+            sum(rate(payment_transactions_total[5m])) by (device_id)
+          ) > 0.05
+        for: 2m
+        labels:
+          severity: critical
+          component: payment-driver
+          team: payments
+        annotations:
+          summary: "High error rate on device {{ $labels.device_id }}"
+          description: "Error rate is {{ $value | humanizePercentage }} for error type {{ $labels.error_type }} on device {{ $labels.device_id }}. Threshold is 5%."
+          runbook_url: "https://docs.example.com/runbooks/payment-high-error-rate"
+          dashboard: "https://grafana.example.com/d/payment-overview"
+
+      # Terminal connection down
+      - alert: PaymentTerminalDisconnected
+        expr: payment_connection_status == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: payment-driver
+          team: payments
+        annotations:
+          summary: "Payment terminal {{ $labels.terminal_id }} disconnected"
+          description: "Terminal {{ $labels.terminal_id }} on device {{ $labels.device_id }} has been disconnected for more than 1 minute."
+          runbook_url: "https://docs.example.com/runbooks/payment-terminal-disconnected"
+
+      # Transaction timeout spike
+      - alert: PaymentTransactionTimeoutSpike
+        expr: |
+          rate(payment_transaction_timeouts_total[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: critical
+          component: payment-driver
+          team: payments
+        annotations:
+          summary: "High transaction timeout rate on {{ $labels.device_id }}"
+          description: "Transaction timeout rate is {{ $value | humanize }} per second on device {{ $labels.device_id }}. This may indicate network or terminal issues."
+          runbook_url: "https://docs.example.com/runbooks/payment-timeout-spike"
+
+      # Very low success rate
+      - alert: PaymentVeryLowSuccessRate
+        expr: |
+          (
+            sum(rate(payment_transactions_total{status="approved"}[5m])) by (device_id)
+            /
+            sum(rate(payment_transactions_total[5m])) by (device_id)
+          ) < 0.80
+        for: 5m
+        labels:
+          severity: critical
+          component: payment-driver
+          team: payments
+        annotations:
+          summary: "Very low success rate on {{ $labels.device_id }}"
+          description: "Success rate is {{ $value | humanizePercentage }} on device {{ $labels.device_id }}. Threshold is 80%."
+          runbook_url: "https://docs.example.com/runbooks/payment-low-success-rate"
+
+      # Settlement failure
+      - alert: PaymentSettlementFailed
+        expr: |
+          increase(payment_settlements_total{status="failed"}[1h]) > 0
+        for: 5m
+        labels:
+          severity: critical
+          component: payment-driver
+          team: payments
+        annotations:
+          summary: "Settlement failed on {{ $labels.device_id }}"
+          description: "Settlement has failed {{ $value }} times in the last hour on device {{ $labels.device_id }}."
+          runbook_url: "https://docs.example.com/runbooks/payment-settlement-failed"
+
+      # No transactions processed (potential system failure)
+      - alert: PaymentNoTransactionsProcessed
+        expr: |
+          sum(rate(payment_transactions_total[10m])) by (device_id) == 0
+          and
+          payment_connection_status == 1
+        for: 10m
+        labels:
+          severity: critical
+          component: payment-driver
+          team: payments
+        annotations:
+          summary: "No transactions processed on {{ $labels.device_id }}"
+          description: "Device {{ $labels.device_id }} is connected but has not processed any transactions in 10 minutes. This may indicate a system failure."
+          runbook_url: "https://docs.example.com/runbooks/payment-no-transactions"
+
+  # Warning Alerts - Investigation needed
+  - name: payment_warning_alerts
+    interval: 60s
+    rules:
+      # Elevated error rate
+      - alert: PaymentElevatedErrorRate
+        expr: |
+          (
+            sum(rate(payment_errors_total[10m])) by (device_id, error_type)
+            /
+            sum(rate(payment_transactions_total[10m])) by (device_id)
+          ) > 0.02
+        for: 5m
+        labels:
+          severity: warning
+          component: payment-driver
+          team: payments
+        annotations:
+          summary: "Elevated error rate on {{ $labels.device_id }}"
+          description: "Error rate is {{ $value | humanizePercentage }} for error type {{ $labels.error_type }}. Normal threshold is 2%."
+
+      # Slow transaction processing
+      - alert: PaymentSlowTransactions
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(payment_transaction_duration_seconds_bucket[5m])) by (le, device_id)
+          ) > 5
+        for: 5m
+        labels:
+          severity: warning
+          component: payment-driver
+          team: payments
+        annotations:
+          summary: "Slow transaction processing on {{ $labels.device_id }}"
+          description: "P95 transaction duration is {{ $value | humanizeDuration }} on device {{ $labels.device_id }}. Normal threshold is 5s."
+          runbook_url: "https://docs.example.com/runbooks/payment-slow-transactions"
+
+      # Low success rate
+      - alert: PaymentLowSuccessRate
+        expr: |
+          (
+            sum(rate(payment_transactions_total{status="approved"}[10m])) by (device_id)
+            /
+            sum(rate(payment_transactions_total[10m])) by (device_id)
+          ) < 0.90
+        for: 10m
+        labels:
+          severity: warning
+          component: payment-driver
+          team: payments
+        annotations:
+          summary: "Low success rate on {{ $labels.device_id }}"
+          description: "Success rate is {{ $value | humanizePercentage }}. Expected rate is above 90%."
+
+      # Connection instability
+      - alert: PaymentConnectionFlapping
+        expr: |
+          changes(payment_connection_status[15m]) > 5
+        for: 5m
+        labels:
+          severity: warning
+          component: payment-driver
+          team: payments
+        annotations:
+          summary: "Connection flapping on {{ $labels.device_id }}"
+          description: "Terminal {{ $labels.terminal_id }} has connected/disconnected {{ $value }} times in 15 minutes."
+          runbook_url: "https://docs.example.com/runbooks/payment-connection-flapping"
+
+      # High void rate
+      - alert: PaymentHighVoidRate
+        expr: |
+          (
+            sum(rate(payment_transactions_total{type="void"}[30m])) by (device_id)
+            /
+            sum(rate(payment_transactions_total{type="sale"}[30m])) by (device_id)
+          ) > 0.10
+        for: 15m
+        labels:
+          severity: warning
+          component: payment-driver
+          team: payments
+        annotations:
+          summary: "High void rate on {{ $labels.device_id }}"
+          description: "Void rate is {{ $value | humanizePercentage }} on device {{ $labels.device_id }}. This may indicate operational issues."
+
+      # High refund rate
+      - alert: PaymentHighRefundRate
+        expr: |
+          (
+            sum(rate(payment_transactions_total{type="refund"}[1h])) by (device_id)
+            /
+            sum(rate(payment_transactions_total{type="sale"}[1h])) by (device_id)
+          ) > 0.05
+        for: 30m
+        labels:
+          severity: warning
+          component: payment-driver
+          team: payments
+        annotations:
+          summary: "High refund rate on {{ $labels.device_id }}"
+          description: "Refund rate is {{ $value | humanizePercentage }}. Normal threshold is 5%."
+
+      # Audit logging errors
+      - alert: PaymentAuditLoggingErrors
+        expr: |
+          rate(payment_audit_errors_total[10m]) > 0.01
+        for: 5m
+        labels:
+          severity: warning
+          component: payment-driver
+          team: payments
+        annotations:
+          summary: "Audit logging errors on {{ $labels.device_id }}"
+          description: "Audit logging is experiencing errors at {{ $value | humanize }} per second. This may affect compliance."
+          runbook_url: "https://docs.example.com/runbooks/payment-audit-errors"
+
+  # Performance Monitoring
+  - name: payment_performance_alerts
+    interval: 60s
+    rules:
+      # High transaction volume
+      - alert: PaymentHighTransactionVolume
+        expr: |
+          sum(rate(payment_transactions_total[5m])) by (device_id) > 10
+        for: 5m
+        labels:
+          severity: info
+          component: payment-driver
+          team: payments
+        annotations:
+          summary: "High transaction volume on {{ $labels.device_id }}"
+          description: "Processing {{ $value | humanize }} transactions per second. Monitor for performance degradation."
+
+      # Settlement approaching
+      - alert: PaymentSettlementDue
+        expr: |
+          (time() - payment_last_settlement_timestamp) > (20 * 3600)
+        for: 1h
+        labels:
+          severity: warning
+          component: payment-driver
+          team: payments
+        annotations:
+          summary: "Settlement due on {{ $labels.device_id }}"
+          description: "Last settlement was {{ $value | humanizeDuration }} ago. Daily settlement should be performed."
+
+      # Large batch size
+      - alert: PaymentLargeBatchSize
+        expr: |
+          payment_batch_transaction_count > 1000
+        for: 10m
+        labels:
+          severity: info
+          component: payment-driver
+          team: payments
+        annotations:
+          summary: "Large batch size on {{ $labels.device_id }}"
+          description: "Current batch has {{ $value }} transactions. Consider performing settlement."
+
+  # Security Monitoring
+  - name: payment_security_alerts
+    interval: 30s
+    rules:
+      # Repeated authentication failures
+      - alert: PaymentRepeatedAuthFailures
+        expr: |
+          rate(payment_errors_total{error_type="authentication_failed"}[5m]) > 0.5
+        for: 2m
+        labels:
+          severity: warning
+          component: payment-driver
+          team: security
+        annotations:
+          summary: "Repeated authentication failures on {{ $labels.device_id }}"
+          description: "Authentication failures occurring at {{ $value | humanize }} per second. Possible security incident."
+          runbook_url: "https://docs.example.com/runbooks/payment-auth-failures"
+
+      # Suspicious decline pattern
+      - alert: PaymentSuspiciousDeclinePattern
+        expr: |
+          (
+            sum(rate(payment_transactions_total{status="declined",response_code=~"51|54|55"}[10m])) by (device_id)
+            /
+            sum(rate(payment_transactions_total[10m])) by (device_id)
+          ) > 0.20
+        for: 5m
+        labels:
+          severity: warning
+          component: payment-driver
+          team: security
+        annotations:
+          summary: "Suspicious decline pattern on {{ $labels.device_id }}"
+          description: "High rate of card-related declines ({{ $value | humanizePercentage }}). Possible card testing fraud."
+          runbook_url: "https://docs.example.com/runbooks/payment-fraud-detection"
+
+  # Business Metrics
+  - name: payment_business_alerts
+    interval: 300s
+    rules:
+      # Low transaction volume (business hours)
+      - alert: PaymentLowTransactionVolume
+        expr: |
+          sum(rate(payment_transactions_total[30m])) by (device_id) < 0.05
+          and
+          hour() >= 9 and hour() <= 21
+        for: 30m
+        labels:
+          severity: info
+          component: payment-driver
+          team: payments
+        annotations:
+          summary: "Low transaction volume on {{ $labels.device_id }}"
+          description: "Transaction rate is only {{ $value | humanize }} per second during business hours."
+
+      # Unusual transaction amount
+      - alert: PaymentUnusualTransactionAmount
+        expr: |
+          histogram_quantile(0.99,
+            sum(rate(payment_transaction_amount_bucket[1h])) by (le, device_id)
+          ) > 1000000
+        for: 15m
+        labels:
+          severity: info
+          component: payment-driver
+          team: payments
+        annotations:
+          summary: "Unusual transaction amounts on {{ $labels.device_id }}"
+          description: "P99 transaction amount is {{ $value | humanize }} cents. This is unusually high."
