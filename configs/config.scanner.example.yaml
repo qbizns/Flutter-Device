@@ -1,0 +1,379 @@
+# Device Bridge v2 - USB HID Scanner Configuration Examples
+#
+# This file demonstrates various USB HID barcode scanner configurations.
+# See docs/SCANNER_SETUP.md for complete setup instructions.
+
+server:
+  grpc_port: 50051
+  http_port: 8080
+  metrics_port: 9090
+  host: "0.0.0.0"
+
+telemetry:
+  log_level: "info"
+  metrics_enabled: true
+  tracing_enabled: false
+
+# Scanner Device Configurations
+devices:
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Example 1: Auto-detect First Available Scanner
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Automatically detects and connects to the first USB HID scanner found.
+  # Use this when you have a single scanner and don't care about the model.
+
+  - id: scanner-auto
+    type: scanner.hid
+    name: "Auto-detected Scanner"
+    enabled: true
+    tags:
+      - "auto"
+      - "lane-1"
+    config:
+      # No vendor_id/product_id = auto-detection
+      buffer_size: 10
+      read_timeout: 1s
+      reconnect_delay: 5s
+    metadata:
+      location: "Checkout Lane 1"
+      mode: "auto-detect"
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Example 2: Symbol/Zebra LS2208 Scanner (Specific Model)
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Target a specific scanner model by vendor/product ID.
+  # Use this when you have multiple scanners and need to identify specific ones.
+
+  - id: scanner-symbol-ls2208
+    type: scanner.hid
+    name: "Symbol LS2208 Front Desk"
+    enabled: true
+    tags:
+      - "symbol"
+      - "front-desk"
+    config:
+      vendor_id: 0x05e0    # Symbol/Zebra
+      product_id: 0x1200   # LS2208
+      buffer_size: 10
+      read_timeout: 1s
+      reconnect_delay: 5s
+    metadata:
+      location: "Front Desk"
+      manufacturer: "Symbol/Zebra"
+      model: "LS2208"
+      type: "1D Barcode Scanner"
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Example 3: Symbol DS2208 (2D Scanner)
+  # ═══════════════════════════════════════════════════════════════════════════
+  # 2D scanner supporting QR codes and DataMatrix in addition to 1D barcodes.
+
+  - id: scanner-symbol-ds2208
+    type: scanner.hid
+    name: "Symbol DS2208 Main"
+    enabled: true
+    tags:
+      - "symbol"
+      - "2d"
+      - "main"
+    config:
+      vendor_id: 0x05e0    # Symbol/Zebra
+      product_id: 0x1300   # DS2208
+      buffer_size: 20      # Larger buffer for 2D codes
+      read_timeout: 1s
+      reconnect_delay: 5s
+    metadata:
+      location: "Main Counter"
+      manufacturer: "Symbol/Zebra"
+      model: "DS2208"
+      type: "2D Barcode Scanner"
+      capabilities: "1D, 2D, QR, DataMatrix"
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Example 4: Honeywell Voyager 1200g
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Popular single-line laser scanner for retail.
+
+  - id: scanner-honeywell-voyager
+    type: scanner.hid
+    name: "Honeywell Voyager 1200g"
+    enabled: true
+    tags:
+      - "honeywell"
+      - "lane-2"
+    config:
+      vendor_id: 0x0c2e    # Honeywell
+      product_id: 0x0200   # Voyager 1200g
+      buffer_size: 10
+      read_timeout: 1s
+      reconnect_delay: 5s
+    metadata:
+      location: "Checkout Lane 2"
+      manufacturer: "Honeywell"
+      model: "Voyager 1200g"
+      type: "1D Laser Scanner"
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Example 5: Honeywell Xenon 1900 (2D)
+  # ═══════════════════════════════════════════════════════════════════════════
+  # High-performance 2D area imager.
+
+  - id: scanner-honeywell-xenon
+    type: scanner.hid
+    name: "Honeywell Xenon 1900"
+    enabled: true
+    tags:
+      - "honeywell"
+      - "2d"
+      - "warehouse"
+    config:
+      vendor_id: 0x0c2e    # Honeywell
+      product_id: 0x0b61   # Xenon 1900
+      buffer_size: 20
+      read_timeout: 1s
+      reconnect_delay: 5s
+    metadata:
+      location: "Warehouse"
+      manufacturer: "Honeywell"
+      model: "Xenon 1900"
+      type: "2D Area Imager"
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Example 6: Datalogic QuickScan QD2430
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Datalogic 2D handheld scanner.
+
+  - id: scanner-datalogic-quickscan
+    type: scanner.hid
+    name: "Datalogic QuickScan"
+    enabled: true
+    tags:
+      - "datalogic"
+      - "2d"
+      - "lane-3"
+    config:
+      vendor_id: 0x05f9    # Datalogic
+      product_id: 0x4204   # QuickScan QD2430
+      buffer_size: 15
+      read_timeout: 1s
+      reconnect_delay: 5s
+    metadata:
+      location: "Checkout Lane 3"
+      manufacturer: "Datalogic"
+      model: "QuickScan QD2430"
+      type: "2D Handheld Scanner"
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Example 7: Multiple Scanners with Serial Number Filtering
+  # ═══════════════════════════════════════════════════════════════════════════
+  # When you have multiple identical scanners, filter by serial number.
+  # Use: bridge-cli devices discover --type scanner.hid
+  # to find serial numbers.
+
+  - id: scanner-lane-4a
+    type: scanner.hid
+    name: "Scanner Lane 4A"
+    enabled: true
+    tags:
+      - "lane-4"
+      - "primary"
+    config:
+      vendor_id: 0x05e0
+      product_id: 0x1200
+      serial: "ABC123456"  # Specific scanner serial
+      buffer_size: 10
+      read_timeout: 1s
+      reconnect_delay: 5s
+    metadata:
+      location: "Lane 4 - Primary"
+      position: "main"
+
+  - id: scanner-lane-4b
+    type: scanner.hid
+    name: "Scanner Lane 4B"
+    enabled: true
+    tags:
+      - "lane-4"
+      - "backup"
+    config:
+      vendor_id: 0x05e0
+      product_id: 0x1200
+      serial: "XYZ789012"  # Different scanner serial
+      buffer_size: 10
+      read_timeout: 1s
+      reconnect_delay: 5s
+    metadata:
+      location: "Lane 4 - Backup"
+      position: "backup"
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Example 8: High-throughput Configuration
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Optimized for high-volume scanning scenarios.
+
+  - id: scanner-high-throughput
+    type: scanner.hid
+    name: "High-throughput Scanner"
+    enabled: true
+    tags:
+      - "warehouse"
+      - "high-volume"
+    config:
+      vendor_id: 0x0c2e
+      product_id: 0x0b61
+      buffer_size: 100     # Large buffer for burst scanning
+      read_timeout: 100ms  # Lower timeout for faster response
+      reconnect_delay: 2s  # Faster reconnection
+    metadata:
+      location: "Warehouse Receiving"
+      mode: "high-throughput"
+      expected_rate: "100+ scans/minute"
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Example 9: Virtual Scanner (Testing/Development)
+  # ═══════════════════════════════════════════════════════════════════════════
+  # For development and testing without physical hardware.
+
+  - id: scanner-virtual
+    type: scanner.virtual
+    name: "Virtual Test Scanner"
+    enabled: false  # Enable for testing
+    tags:
+      - "virtual"
+      - "testing"
+    config:
+      buffer_size: 10
+    metadata:
+      mode: "virtual"
+      purpose: "development and testing"
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Configuration Reference
+# ═══════════════════════════════════════════════════════════════════════════
+
+# Device Configuration Fields:
+#
+#   id (required):
+#     Unique identifier for this device.
+#     Type: string
+#
+#   type (required):
+#     Device type. Use "scanner.hid" for USB HID scanners.
+#     Type: string
+#     Options: scanner.hid, scanner.virtual
+#
+#   name (required):
+#     Human-readable name for this device.
+#     Type: string
+#
+#   enabled (optional):
+#     Whether this device should be initialized at startup.
+#     Type: boolean
+#     Default: true
+#
+#   tags (optional):
+#     List of tags for grouping and filtering devices.
+#     Type: array of strings
+#
+#   metadata (optional):
+#     Arbitrary key-value pairs for additional information.
+#     Type: map[string]string
+#
+#   config (required):
+#     Scanner-specific configuration (see below).
+
+# Scanner Config Fields:
+#
+#   vendor_id (optional):
+#     USB Vendor ID in hexadecimal (e.g., 0x05e0).
+#     Omit for auto-detection.
+#     Type: uint16 (hex)
+#
+#   product_id (optional):
+#     USB Product ID in hexadecimal (e.g., 0x1200).
+#     Required if vendor_id is specified.
+#     Type: uint16 (hex)
+#
+#   serial (optional):
+#     Scanner serial number for filtering when multiple identical
+#     scanners are connected.
+#     Type: string
+#
+#   buffer_size (optional):
+#     Number of scan events to buffer.
+#     Larger buffers help with burst scanning but use more memory.
+#     Type: integer
+#     Default: 10
+#     Recommended: 10-100
+#
+#   read_timeout (optional):
+#     Timeout for USB read operations.
+#     Type: duration (e.g., "1s", "500ms")
+#     Default: 1s
+#     Recommended: 100ms-2s
+#
+#   reconnect_delay (optional):
+#     Delay between reconnection attempts after disconnect.
+#     Type: duration (e.g., "5s", "10s")
+#     Default: 5s
+#     Recommended: 2s-10s
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Supported Scanner Models (22 models)
+# ═══════════════════════════════════════════════════════════════════════════
+
+# Symbol/Zebra:
+#   - LS2208:              0x05e0:0x1200
+#   - DS2208:              0x05e0:0x1300
+#   - DS9208:              0x05e0:0x1900
+#   - LS2208 (KBD Wedge): 0x05e0:0x1203
+#
+# Honeywell:
+#   - Voyager 1200g:       0x0c2e:0x0200
+#   - Voyager 1400g:       0x0c2e:0x0720
+#   - Xenon 1900:          0x0c2e:0x0b61
+#   - Xenon 1902:          0x0c2e:0x0b00
+#
+# Datalogic:
+#   - QuickScan QD2430:    0x05f9:0x4204
+#   - QuickScan QBT2430:   0x05f9:0x4206
+#   - Gryphon GD4430:      0x05f9:0x2206
+#   - Gryphon I GD4400:    0x05f9:0x2232
+#
+# Code Corporation:
+#   - CR2600:              0x065a:0x0001
+#   - CR2700:              0x065a:0x0002
+#
+# Opticon:
+#   - OPN-2001:            0x065a:0x0009
+#   - OPN-2002:            0x065a:0x0011
+#
+# Metrologic (now Honeywell):
+#   - MS7120 Orbit:        0x0c2e:0x0007
+#   - MS9520 Voyager:      0x0c2e:0x0009
+#
+# Unitech:
+#   - MS840:               0x1ec8:0x0101
+#   - MS842:               0x1ec8:0x0102
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Quick Start
+# ═══════════════════════════════════════════════════════════════════════════
+
+# 1. Discover connected scanners:
+#    $ bridge-cli devices discover --type scanner.hid
+#
+# 2. Copy this file:
+#    $ cp configs/config.scanner.example.yaml configs/config.yaml
+#
+# 3. Edit config.yaml with your scanner's vendor_id and product_id
+#
+# 4. Start the bridge:
+#    $ ./bin/bridge -config configs/config.yaml
+#
+# 5. Test scanning:
+#    $ bridge-cli test scan scanner-auto
+#
+# For detailed setup instructions, see:
+#   - docs/SCANNER_SETUP.md
+#   - docs/BUILDING.md

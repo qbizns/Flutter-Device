@@ -13,6 +13,7 @@ import (
 	"google.golang.org/grpc/metadata"
 
 	pb "github.com/Macber-eg/Flutter-Device/proto/devicebridge/v1"
+	"github.com/Macber-eg/Flutter-Device/internal/drivers/scanner_hid"
 )
 
 var devicesCmd = &cobra.Command{
@@ -36,10 +37,25 @@ var devicesGetCmd = &cobra.Command{
 	RunE:  runDevicesGet,
 }
 
+var devicesDiscoverCmd = &cobra.Command{
+	Use:   "discover",
+	Short: "Discover available hardware devices",
+	Long:  "Discover and enumerate available hardware devices (USB scanners, etc.)",
+	RunE:  runDevicesDiscover,
+}
+
+var (
+	discoverType string
+)
+
 func init() {
 	rootCmd.AddCommand(devicesCmd)
 	devicesCmd.AddCommand(devicesListCmd)
 	devicesCmd.AddCommand(devicesGetCmd)
+	devicesCmd.AddCommand(devicesDiscoverCmd)
+
+	// Flags for discover command
+	devicesDiscoverCmd.Flags().StringVarP(&discoverType, "type", "t", "", "Device type to discover (scanner.hid, scale.serial, etc.)")
 }
 
 // createClient creates a gRPC client connection
@@ -202,6 +218,124 @@ func runDevicesGet(cmd *cobra.Command, args []string) error {
 			fmt.Printf("  %s: %s\n", key, value)
 		}
 	}
+
+	return nil
+}
+
+func runDevicesDiscover(cmd *cobra.Command, args []string) error {
+	verbosePrintf("Discovering hardware devices...\n")
+
+	// Determine what to discover
+	switch discoverType {
+	case "", "scanner.hid", "scanner":
+		return discoverUSBScanners()
+	case "scale.serial", "scale":
+		fmt.Println("Serial scale discovery not yet implemented")
+		fmt.Println("Coming in Phase 3, Week 4-6")
+		return nil
+	case "payment.tcp", "payment":
+		fmt.Println("Payment terminal discovery not yet implemented")
+		fmt.Println("Coming in Phase 3, Week 7-9")
+		return nil
+	default:
+		return fmt.Errorf("unknown device type: %s", discoverType)
+	}
+}
+
+func discoverUSBScanners() error {
+	fmt.Println("Scanning for USB HID barcode scanners...")
+	fmt.Println()
+
+	scanners, err := scanner_hid.EnumerateScanners()
+	if err != nil {
+		return fmt.Errorf("failed to enumerate scanners: %w", err)
+	}
+
+	if len(scanners) == 0 {
+		fmt.Println("No USB HID scanners detected")
+		fmt.Println()
+		fmt.Println("Troubleshooting:")
+		fmt.Println("  1. Ensure scanner is connected via USB")
+		fmt.Println("  2. Check USB permissions (Linux: see docs/SCANNER_SETUP.md)")
+		fmt.Println("  3. Verify scanner is in HID mode (not serial)")
+		fmt.Println("  4. Try: lsusb | grep -i scanner")
+		return nil
+	}
+
+	// Print header
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
+	fmt.Fprintln(w, "VENDOR:PRODUCT\tMANUFACTURER\tMODEL\tSERIAL\tBUS\tKNOWN")
+	fmt.Fprintln(w, "--------------\t------------\t-----\t------\t---\t-----")
+
+	for _, s := range scanners {
+		vendor := s.Vendor
+		if vendor == "" {
+			vendor = fmt.Sprintf("VID:0x%04x", s.VendorID)
+		}
+
+		product := s.Product
+		if product == "" {
+			product = fmt.Sprintf("PID:0x%04x", s.ProductID)
+		}
+
+		serial := s.Serial
+		if serial == "" {
+			serial = "(none)"
+		}
+
+		known := "No"
+		knownModel := ""
+		if s.IsKnownScanner() {
+			known = "Yes"
+			knownModel = s.GetKnownModel()
+		}
+
+		busInfo := fmt.Sprintf("%d:%d", s.BusNumber, s.DeviceAddr)
+
+		// Print main info
+		fmt.Fprintf(w, "%04x:%04x\t%s\t%s\t%s\t%s\t%s\n",
+			s.VendorID,
+			s.ProductID,
+			vendor,
+			product,
+			serial,
+			busInfo,
+			known,
+		)
+
+		// Print known model if available
+		if knownModel != "" {
+			fmt.Fprintf(w, "\t\t\t→ %s\t\t\n", knownModel)
+		}
+	}
+
+	w.Flush()
+
+	fmt.Printf("\nTotal: %d scanner(s) detected\n", len(scanners))
+	fmt.Println()
+
+	// Print usage examples
+	fmt.Println("To use a scanner in config.yaml:")
+	if len(scanners) > 0 {
+		s := scanners[0]
+		fmt.Println()
+		fmt.Println("devices:")
+		fmt.Println("  - id: scanner-1")
+		fmt.Println("    type: scanner.hid")
+		fmt.Println("    name: \"My Scanner\"")
+		fmt.Println("    config:")
+		fmt.Printf("      vendor_id: 0x%04x\n", s.VendorID)
+		fmt.Printf("      product_id: 0x%04x\n", s.ProductID)
+		if s.Serial != "" {
+			fmt.Printf("      serial: \"%s\"\n", s.Serial)
+		}
+		fmt.Println("      buffer_size: 10")
+		fmt.Println("      read_timeout: 1s")
+	}
+
+	fmt.Println()
+	fmt.Println("For more information:")
+	fmt.Println("  docs/SCANNER_SETUP.md")
 
 	return nil
 }
