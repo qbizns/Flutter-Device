@@ -505,3 +505,226 @@ func TestContextTimeout(t *testing.T) {
 		t.Error("Expected error due to not connected, got nil")
 	}
 }
+
+// TestSettlementRequest tests settlement request structure
+func TestSettlementRequest(t *testing.T) {
+	req := SettlementRequest{
+		BatchNumber: "20251111",
+		Force:       false,
+	}
+
+	if req.BatchNumber != "20251111" {
+		t.Errorf("Expected batch number 20251111, got %s", req.BatchNumber)
+	}
+
+	if req.Force {
+		t.Error("Expected force to be false")
+	}
+}
+
+// TestSettlementResponse tests settlement response structure
+func TestSettlementResponse(t *testing.T) {
+	resp := SettlementResponse{
+		Success:       true,
+		BatchNumber:   "20251111",
+		TotalCount:    100,
+		ApprovedCount: 98,
+		TotalAmount:   100000,
+		Currency:      "SAR",
+		Timestamp:     time.Now(),
+		ResponseCode:  "00",
+		ResponseMessage: "Approved",
+	}
+
+	if !resp.Success {
+		t.Error("Expected success to be true")
+	}
+
+	if resp.TotalCount != 100 {
+		t.Errorf("Expected total count 100, got %d", resp.TotalCount)
+	}
+
+	if resp.ApprovedCount != 98 {
+		t.Errorf("Expected approved count 98, got %d", resp.ApprovedCount)
+	}
+}
+
+// TestAuditLogger tests audit logging
+func TestAuditLogger(t *testing.T) {
+	// Create memory audit writer
+	writer := NewMemoryAuditReader()
+
+	// Create audit logger
+	logger := NewAuditLogger(writer, 10)
+
+	// Log a transaction
+	req := TransactionRequest{
+		Type:     TransactionSale,
+		Amount:   10000,
+		Currency: "SAR",
+	}
+
+	resp := &TransactionResponse{
+		Success:          true,
+		Status:           StatusApproved,
+		TransactionID:    "123456",
+		ResponseCode:     "00",
+		ResponseMessage:  "Approved",
+		Amount:           10000,
+		Currency:         "SAR",
+		CardNumberMasked: "****1234",
+	}
+
+	logger.LogTransaction("dev-01", "TERM001", "MERCH001", req, resp, nil, 100*time.Millisecond)
+
+	// Flush
+	err := logger.Flush()
+	if err != nil {
+		t.Fatalf("Flush failed: %v", err)
+	}
+
+	// Get events
+	events := writer.GetAllEvents()
+
+	if len(events) != 1 {
+		t.Fatalf("Expected 1 event, got %d", len(events))
+	}
+
+	event := events[0]
+
+	if event.DeviceID != "dev-01" {
+		t.Errorf("Expected device ID dev-01, got %s", event.DeviceID)
+	}
+
+	if event.EventType != "transaction" {
+		t.Errorf("Expected event type transaction, got %s", event.EventType)
+	}
+
+	if event.Amount != 10000 {
+		t.Errorf("Expected amount 10000, got %d", event.Amount)
+	}
+
+	if !event.Success {
+		t.Error("Expected success to be true")
+	}
+}
+
+// TestAuditLoggerConnection tests connection audit logging
+func TestAuditLoggerConnection(t *testing.T) {
+	writer := NewMemoryAuditReader()
+	logger := NewAuditLogger(writer, 10)
+
+	logger.LogConnection("dev-01", "TERM001", "MERCH001", "connect", true, nil)
+
+	err := logger.Flush()
+	if err != nil {
+		t.Fatalf("Flush failed: %v", err)
+	}
+
+	events := writer.GetAllEvents()
+
+	if len(events) != 1 {
+		t.Fatalf("Expected 1 event, got %d", len(events))
+	}
+
+	event := events[0]
+
+	if event.EventType != "connection" {
+		t.Errorf("Expected event type connection, got %s", event.EventType)
+	}
+
+	if event.Action != "connect" {
+		t.Errorf("Expected action connect, got %s", event.Action)
+	}
+
+	if !event.Success {
+		t.Error("Expected success to be true")
+	}
+}
+
+// TestAuditLoggerDisabled tests disabled audit logger
+func TestAuditLoggerDisabled(t *testing.T) {
+	writer := NewMemoryAuditReader()
+	logger := NewAuditLogger(writer, 10)
+
+	// Disable logger
+	logger.Disable()
+
+	// Log transaction
+	req := TransactionRequest{
+		Type:     TransactionSale,
+		Amount:   10000,
+		Currency: "SAR",
+	}
+
+	logger.LogTransaction("dev-01", "TERM001", "MERCH001", req, nil, nil, 0)
+
+	err := logger.Flush()
+	if err != nil {
+		t.Fatalf("Flush failed: %v", err)
+	}
+
+	// Should have no events
+	events := writer.GetAllEvents()
+	if len(events) != 0 {
+		t.Errorf("Expected 0 events (disabled), got %d", len(events))
+	}
+
+	// Re-enable and log
+	logger.Enable()
+	logger.LogTransaction("dev-01", "TERM001", "MERCH001", req, nil, nil, 0)
+
+	err = logger.Flush()
+	if err != nil {
+		t.Fatalf("Flush failed: %v", err)
+	}
+
+	events = writer.GetAllEvents()
+	if len(events) != 1 {
+		t.Errorf("Expected 1 event (re-enabled), got %d", len(events))
+	}
+}
+
+// TestCompletionTransaction tests completion transaction type
+func TestCompletionTransaction(t *testing.T) {
+	req := TransactionRequest{
+		Type:              TransactionCompletion,
+		Amount:            10000,
+		Currency:          "SAR",
+		OriginalReference: "123456789012",
+	}
+
+	if req.Type != TransactionCompletion {
+		t.Errorf("Expected type completion, got %s", req.Type)
+	}
+
+	if req.OriginalReference == "" {
+		t.Error("Original reference should not be empty for completion")
+	}
+}
+
+// TestSetAuditLogger tests setting audit logger on driver
+func TestSetAuditLogger(t *testing.T) {
+	config := ConnectionConfig{
+		Host:       "localhost",
+		Port:       3000,
+		TerminalID: "TERM001",
+		MerchantID: "MERCH001",
+	}
+
+	driver := NewDriver("pay-01", "Test Terminal", config)
+
+	// Initially no logger
+	status := driver.GetStatus()
+	if status.TerminalID != "TERM001" {
+		t.Errorf("Expected terminal ID TERM001, got %s", status.TerminalID)
+	}
+
+	// Set audit logger
+	writer := NewMemoryAuditReader()
+	logger := NewAuditLogger(writer, 10)
+	driver.SetAuditLogger(logger)
+
+	// Logger should be set (we can't directly test this without exposing the field,
+	// but at least we know the method works without panicking)
+}
