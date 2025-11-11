@@ -562,19 +562,20 @@ devices:
 ## Timeline
 
 ```
-Week 1-3:   USB HID Scanner Driver ███████▓░░░░░░░░░░░░░░░░░░  Week 1: 95% ✅
-Week 4-6:   Serial Scale Driver    ░░░░░░░░████████░░░░░░░░░░
-Week 7-9:   Payment Terminal       ░░░░░░░░░░░░░░░░████████░░
-Week 10-11: Extended Testing       ░░░░░░░░░░░░░░░░░░░░░░████
-Week 12-13: Production Features    ░░░░░░░░░░░░░░░░░░░░░░░░██
+Week 1-3:   USB HID Scanner Driver ██████████████▒░░░░░░░░░░░  W1:95% W2:100% W3:HW ✅
+Week 4-6:   Serial Scale Driver    ░░░░░░░░░░░░░░████████░░░░
+Week 7-9:   Payment Terminal       ░░░░░░░░░░░░░░░░░░░░████░░
+Week 10-11: Extended Testing       ░░░░░░░░░░░░░░░░░░░░░░░░██
+Week 12-13: Production Features    ░░░░░░░░░░░░░░░░░░░░░░░░░█
 Week 14:    Deployment & Ops       ░░░░░░░░░░░░░░░░░░░░░░░░░█
 
-Legend: █ Complete  ▓ In Progress  ░ Pending
+Legend: █ Complete  ▒ HW Pending  ░ Not Started
 ```
 
 **Start Date:** 2025-11-10
-**Current Week:** Week 1 complete, starting Week 2
+**Current Status:** Week 2 complete (software), Week 3 ready for hardware validation
 **Target Completion:** 2025-02-17 (14 weeks)
+**Note:** Scanner driver software complete. Hardware testing deferred until physical scanner available.
 
 ---
 
@@ -591,37 +592,57 @@ Legend: █ Complete  ▓ In Progress  ░ Pending
 8. ✅ Comprehensive documentation (BUILDING.md, SCANNER_SETUP.md)
 9. ⏳ Hardware integration tests (requires physical USB HID scanner)
 
-### Week 2 - USB HID Scanner Testing & Integration:
-1. ⏳ Obtain physical USB HID scanner for testing
-2. ⏳ Create hardware integration test framework
-3. ⏳ Test with real scanner (Symbol/Zebra or Honeywell)
-4. ⏳ Verify hotplug detection
-5. ⏳ Test multi-scanner support
-6. ⏳ Add CLI commands for scanner discovery
-7. ⏳ Performance testing under load
-8. ⏳ Document tested scanner models
+### Week 2 - USB HID Scanner Testing & Integration: ✅ SOFTWARE COMPLETE
+1. ⏳ Obtain physical USB HID scanner for testing (hardware procurement)
+2. ✅ Create hardware integration test framework (test/hardware/)
+3. ⏳ Test with real scanner (requires physical hardware)
+4. ⏳ Verify hotplug detection (requires physical hardware)
+5. ⏳ Test multi-scanner support (requires physical hardware)
+6. ✅ Add CLI commands for scanner discovery (`bridge-cli devices discover`)
+7. ✅ Add CLI commands for scan monitoring (`bridge-cli test scan`)
+8. ✅ Create configuration examples (config.scanner.simple.yaml)
+9. ✅ Register driver with device manager (cmd/bridge/main.go)
+10. ⏳ Performance testing under load (requires physical hardware)
+11. ⏳ Document tested scanner models (pending hardware validation)
+
+### Week 3 - Hardware Validation & Polish: ⏳ HARDWARE DEPENDENT
+1. ⏳ Procure physical USB HID scanner (Symbol LS2208 or Honeywell Voyager recommended)
+2. ⏳ Execute hardware integration tests (`make test-hardware`)
+3. ⏳ Validate auto-detection with unknown scanners
+4. ⏳ Test hotplug detection (disconnect/reconnect)
+5. ⏳ Multi-scanner testing (if multiple scanners available)
+6. ⏳ Performance benchmarks under load
+7. ⏳ Update hardware compatibility matrix with tested models
+8. ⏳ Document any issues or platform-specific quirks
+9. 🔄 **OR proceed to Stage 2 (Serial Scale Driver) in parallel**
 
 ### Commands for Testing (when scanner available):
 ```bash
-# List connected USB devices
-lsusb
-
-# Run hardware integration tests
-make test-hardware
-
-# Test scanner discovery
+# Discover connected scanners
 ./bin/bridge-cli devices discover --type scanner.hid
 
+# Start bridge with scanner
+./bin/bridge -config configs/config.scanner.simple.yaml
+
 # Monitor scan events
-./bin/bridge-cli test scan scanner-front
+./bin/bridge-cli test scan scanner-auto
+
+# Run full hardware test suite
+make test-hardware
+
+# Run benchmarks
+make bench
 ```
 
 ---
 
-## Phase 3 Status: 🚀 In Progress (7%)
+## Phase 3 Status: 🚀 In Progress (12%)
 
-**Current Sprint**: Week 1 → Week 2 (USB HID Scanner Driver)
+**Current Sprint**: Week 2 Complete → Week 3 (USB HID Scanner Driver)
 **Week 1 Progress**: 95% complete (hardware testing pending)
+**Week 2 Progress**: 100% complete (all software tasks done)
+**Software Development**: ✅ Complete for Stage 1 (USB HID Scanner)
+**Hardware Validation**: ⏳ Pending physical scanner availability
 **Last Updated**: 2025-11-11
 **Next Review**: 2025-11-17
 
@@ -634,3 +655,111 @@ make test-hardware
 - ✅ Comprehensive documentation (3 guides: BUILDING, SCANNER_SETUP, USB_LIBRARY_EVALUATION)
 - ✅ Build system integration (go.mod updated with gousb v1.1.3)
 - ⏳ Hardware integration tests (waiting on physical scanner)
+
+### Week 2 Accomplishments:
+- ✅ Hardware integration test framework (8 tests, build tag isolation)
+- ✅ Test documentation and setup guides (test/hardware/README.md)
+- ✅ CLI discovery command (`bridge-cli devices discover`)
+- ✅ CLI scan monitoring command (`bridge-cli test scan`)
+- ✅ Configuration examples (simple and advanced)
+- ✅ Driver registration with device manager
+- ✅ Makefile targets (test-hardware, bench)
+- 📦 Ready for hardware validation when scanner available
+
+---
+
+## 🎯 Decision Point: Next Steps
+
+The USB HID Scanner driver is **software complete** (Week 1-2: 100%). You have **two options** for proceeding:
+
+### Option A: Continue with Hardware Validation (Week 3)
+**If you have or can obtain a physical USB HID scanner:**
+1. Procure scanner (Symbol LS2208 ~$100, Honeywell Voyager ~$150)
+2. Run hardware integration tests
+3. Validate hotplug, multi-scanner, performance
+4. Document tested models
+
+**Pros:**
+- Complete Stage 1 to 100%
+- Validate real-world functionality
+- Build hardware compatibility database
+
+**Cons:**
+- Requires hardware procurement ($100-150)
+- May have delays in obtaining scanner
+
+### Option B: Proceed to Stage 2 (Serial Scale Driver - Weeks 4-6) 🎯 RECOMMENDED
+**Start next driver implementation while scanner procurement is in progress:**
+1. Begin Serial Scale Driver (Week 4-6)
+2. Research scale protocols (Mettler Toledo, CAS, Dibal)
+3. Implement serial port communication
+4. Test in parallel with scanner when it arrives
+
+**Pros:**
+- ✅ Maintains development momentum
+- ✅ Scanner driver can be validated later
+- ✅ Scales may be easier to procure or simulate
+- ✅ Parallel development path
+
+**Cons:**
+- Scanner validation deferred
+
+### Option C: Both in Parallel
+1. Order scanner for delivery
+2. Start Stage 2 (Serial Scale) immediately
+3. Validate scanner when it arrives
+4. No time lost waiting
+
+---
+
+## 📋 Immediate Next Steps (Recommended: Option B or C)
+
+### For Stage 2: Serial Scale Driver (Weeks 4-6)
+
+**Week 4 Tasks:**
+1. Research serial scale protocols
+   - Mettler Toledo MT-SICS (industry standard)
+   - CAS protocol (common in retail)
+   - Dibal protocol (European market)
+   - Toledo 8217 (legacy)
+   - Generic ASCII
+
+2. Evaluate serial libraries
+   - go.bug.st/serial (most popular)
+   - tarm/serial (legacy)
+   - jacobsa/go-serial
+
+3. Create driver skeleton
+   - `internal/drivers/scale_serial/driver.go`
+   - `internal/drivers/scale_serial/protocol.go`
+   - `internal/drivers/scale_serial/protocol_mettler.go`
+
+4. Implement serial port handling
+   - Port enumeration
+   - Baud rate detection
+   - Read/write operations
+
+**Estimated Time:** 3-5 days for Week 4
+
+**Hardware Required:** Serial scale OR USB-to-serial adapter for testing ($20-50)
+
+---
+
+## 📊 Current Status Summary
+
+**Completed:**
+- ✅ Phase 3 Planning & Structure
+- ✅ USB HID Scanner Driver (software complete)
+- ✅ Cross-platform USB support (Linux, macOS, Windows)
+- ✅ CLI tools (discovery, monitoring)
+- ✅ Configuration & documentation
+- ✅ Integration with device manager
+
+**In Progress:**
+- ⏳ USB HID Scanner hardware validation (pending physical scanner)
+
+**Next:**
+- 🎯 Stage 2: Serial Scale Driver (recommended to start now)
+- 🎯 Scanner hardware testing (when scanner available)
+
+**Phase 3 Progress:** 12% overall (2/14 weeks software complete)
