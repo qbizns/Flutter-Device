@@ -1,0 +1,446 @@
+# Payment Terminal Configuration Examples
+# ==========================================
+#
+# This file demonstrates various payment terminal configurations for
+# different payment providers and deployment scenarios.
+
+# Server Configuration
+server:
+  grpc:
+    address: ":50051"
+  rest:
+    address: ":8080"
+  websocket:
+    path: "/ws"
+
+security:
+  mode: "production"  # Important: Use production mode for payment processing
+
+# ==============================================================================
+# Example 1: Mada Payment Terminal (Saudi Arabia)
+# ==============================================================================
+# Configuration for Saudi domestic card payments using Mada network
+
+devices:
+  - id: mada-terminal-01
+    name: "Mada Payment Terminal"
+    kind: payment.tcp
+    enabled: true
+    metadata:
+      # Terminal connection
+      host: "192.168.1.100"          # Terminal IP address
+      port: "3000"                    # Terminal port
+      use_tls: "true"                 # Use TLS for secure communication
+      tls_skip_verify: "false"        # Verify TLS certificates in production
+
+      # Terminal identification
+      terminal_id: "12345678"         # 8-digit terminal ID
+      merchant_id: "123456789012345"  # 15-digit merchant ID
+
+      # Provider settings
+      provider: "mada"                # Payment provider: mada, knet, simulator
+      message_format: "1987"          # ISO 8583 format version
+
+      # Timeouts
+      timeout: "30s"                  # Connection timeout
+      read_timeout: "60s"             # Read timeout (wait for customer)
+      write_timeout: "10s"            # Write timeout
+
+      # Retry settings
+      max_retries: "3"                # Maximum retry attempts
+      retry_delay: "2s"               # Delay between retries
+
+# ==============================================================================
+# Example 2: KNET Payment Terminal (Kuwait)
+# ==============================================================================
+# Configuration for Kuwait domestic card payments using KNET network
+
+#devices:
+#  - id: knet-terminal-01
+#    name: "KNET Payment Terminal"
+#    kind: payment.tcp
+#    enabled: true
+#    metadata:
+#      # Terminal connection
+#      host: "10.0.1.50"
+#      port: "3000"
+#      use_tls: "true"
+#      tls_skip_verify: "false"
+#
+#      # Terminal identification
+#      terminal_id: "KNET0001"
+#      merchant_id: "MERCHANT12345"
+#
+#      # Provider settings
+#      provider: "knet"
+#
+#      # Currency
+#      currency: "KWD"  # Kuwaiti Dinar
+#
+#      # Timeouts (longer for PIN entry)
+#      timeout: "45s"
+#      read_timeout: "90s"
+#      write_timeout: "15s"
+
+# ==============================================================================
+# Example 3: Payment Simulator (Development/Testing)
+# ==============================================================================
+# Configuration for testing without real payment hardware
+
+#devices:
+#  - id: payment-simulator
+#    name: "Payment Simulator (Test)"
+#    kind: payment.tcp
+#    enabled: true
+#    metadata:
+#      # Simulator connection
+#      host: "localhost"
+#      port: "3000"
+#      use_tls: "false"  # No TLS for local testing
+#
+#      # Test terminal IDs
+#      terminal_id: "TEST0001"
+#      merchant_id: "TEST_MERCHANT"
+#
+#      # Provider
+#      provider: "simulator"
+#
+#      # Fast timeouts for testing
+#      timeout: "10s"
+#      read_timeout: "30s"
+#      write_timeout: "5s"
+#
+#      # No retries for faster failure in tests
+#      max_retries: "0"
+
+# ==============================================================================
+# Example 4: Multi-Terminal Setup (Retail Store)
+# ==============================================================================
+# Multiple payment terminals for different checkout lanes
+
+#devices:
+#  - id: lane-1-terminal
+#    name: "Checkout Lane 1 - Mada Terminal"
+#    kind: payment.tcp
+#    enabled: true
+#    metadata:
+#      host: "192.168.1.101"
+#      port: "3000"
+#      terminal_id: "LANE0001"
+#      merchant_id: "STORE001"
+#      provider: "mada"
+#      use_tls: "true"
+#
+#  - id: lane-2-terminal
+#    name: "Checkout Lane 2 - Mada Terminal"
+#    kind: payment.tcp
+#    enabled: true
+#    metadata:
+#      host: "192.168.1.102"
+#      port: "3000"
+#      terminal_id: "LANE0002"
+#      merchant_id: "STORE001"
+#      provider: "mada"
+#      use_tls: "true"
+#
+#  - id: lane-3-terminal
+#    name: "Checkout Lane 3 - Mada Terminal"
+#    kind: payment.tcp
+#    enabled: true
+#    metadata:
+#      host: "192.168.1.103"
+#      port: "3000"
+#      terminal_id: "LANE0003"
+#      merchant_id: "STORE001"
+#      provider: "mada"
+#      use_tls: "true"
+
+# ==============================================================================
+# Example 5: High-Security Configuration
+# ==============================================================================
+# Maximum security settings for production deployment
+
+#devices:
+#  - id: secure-terminal
+#    name: "High Security Payment Terminal"
+#    kind: payment.tcp
+#    enabled: true
+#    metadata:
+#      # Secure connection
+#      host: "payment.secure.example.com"
+#      port: "443"
+#      use_tls: "true"
+#      tls_skip_verify: "false"  # Always verify certificates
+#
+#      # Terminal identification
+#      terminal_id: "SECURE01"
+#      merchant_id: "SECURE_MERCHANT"
+#
+#      # Provider
+#      provider: "mada"
+#
+#      # Conservative timeouts
+#      timeout: "30s"
+#      read_timeout: "60s"
+#      write_timeout: "10s"
+#
+#      # Minimal retries (fail fast)
+#      max_retries: "1"
+#      retry_delay: "5s"
+
+# ==============================================================================
+# Example 6: Dual Network Terminal (Mada + International)
+# ==============================================================================
+# Terminal that supports both Mada and international cards
+# Uses primary terminal for Mada, fallback to international network
+
+#devices:
+#  - id: mada-terminal
+#    name: "Mada Primary Terminal"
+#    kind: payment.tcp
+#    enabled: true
+#    metadata:
+#      host: "192.168.1.100"
+#      port: "3000"
+#      terminal_id: "MADA0001"
+#      merchant_id: "DUAL_MERCH"
+#      provider: "mada"
+#      use_tls: "true"
+#
+#  - id: intl-terminal
+#    name: "International Cards Terminal"
+#    kind: payment.tcp
+#    enabled: true
+#    metadata:
+#      host: "192.168.1.101"
+#      port: "3000"
+#      terminal_id: "INTL0001"
+#      merchant_id: "DUAL_MERCH"
+#      provider: "visa_mastercard"
+#      use_tls: "true"
+
+# ==============================================================================
+# Example 7: Backup Terminal Configuration
+# ==============================================================================
+# Primary and backup terminals for high availability
+
+#devices:
+#  - id: primary-terminal
+#    name: "Primary Payment Terminal"
+#    kind: payment.tcp
+#    enabled: true
+#    metadata:
+#      host: "192.168.1.100"
+#      port: "3000"
+#      terminal_id: "PRIMARY1"
+#      merchant_id: "MERCHANT01"
+#      provider: "mada"
+#      use_tls: "true"
+#      priority: "1"  # Highest priority
+#
+#  - id: backup-terminal
+#    name: "Backup Payment Terminal"
+#    kind: payment.tcp
+#    enabled: true
+#    metadata:
+#      host: "192.168.1.200"
+#      port: "3000"
+#      terminal_id: "BACKUP01"
+#      merchant_id: "MERCHANT01"
+#      provider: "mada"
+#      use_tls: "true"
+#      priority: "2"  # Lower priority (used if primary fails)
+
+# ==============================================================================
+# Example 8: Mobile Terminal (Portable)
+# ==============================================================================
+# Configuration for portable/mobile payment terminals
+
+#devices:
+#  - id: mobile-terminal-01
+#    name: "Mobile Payment Terminal"
+#    kind: payment.tcp
+#    enabled: true
+#    metadata:
+#      # Mobile terminal typically uses local connection
+#      host: "localhost"
+#      port: "3000"
+#
+#      terminal_id: "MOBILE01"
+#      merchant_id: "MOBILE_MERCH"
+#      provider: "mada"
+#
+#      # Mobile connections may be slower
+#      timeout: "45s"
+#      read_timeout: "90s"
+#      write_timeout: "15s"
+#
+#      # More aggressive retries for unreliable connections
+#      max_retries: "5"
+#      retry_delay: "3s"
+
+# ==============================================================================
+# Example 9: Self-Service Kiosk
+# ==============================================================================
+# Payment terminal for self-service kiosk
+
+#devices:
+#  - id: kiosk-terminal
+#    name: "Self-Service Kiosk Payment"
+#    kind: payment.tcp
+#    enabled: true
+#    metadata:
+#      host: "localhost"
+#      port: "3000"
+#      terminal_id: "KIOSK001"
+#      merchant_id: "KIOSK_MERCH"
+#      provider: "mada"
+#
+#      # Self-service needs longer timeouts
+#      timeout: "60s"
+#      read_timeout: "120s"  # 2 minutes for customer to complete
+#      write_timeout: "15s"
+#
+#      # Location metadata
+#      location: "Mall Entrance A"
+#      zone: "Ground Floor"
+
+# ==============================================================================
+# Example 10: Restaurant POS
+# ==============================================================================
+# Payment terminal integrated with restaurant POS system
+
+#devices:
+#  - id: restaurant-terminal
+#    name: "Restaurant POS Terminal"
+#    kind: payment.tcp
+#    enabled: true
+#    metadata:
+#      host: "192.168.10.50"
+#      port: "3000"
+#      terminal_id: "REST0001"
+#      merchant_id: "RESTAURANT"
+#      provider: "mada"
+#      use_tls: "true"
+#
+#      # Standard timeouts
+#      timeout: "30s"
+#      read_timeout: "60s"
+#      write_timeout: "10s"
+#
+#      # Restaurant metadata
+#      location: "Main Counter"
+#      station: "POS-1"
+#
+#      # Enable tip processing
+#      enable_tips: "true"
+
+# ==============================================================================
+# Logging Configuration
+# ==============================================================================
+
+logging:
+  level: info  # Use 'info' for production, 'debug' for troubleshooting
+  format: json # JSON format for structured logging
+
+# ==============================================================================
+# Telemetry Configuration
+# ==============================================================================
+
+telemetry:
+  metrics: true
+  tracing: false  # Enable for detailed troubleshooting only
+
+# ==============================================================================
+# Security Notes
+# ==============================================================================
+#
+# PCI DSS Compliance:
+# 1. Always use TLS in production (use_tls: "true")
+# 2. Verify TLS certificates (tls_skip_verify: "false")
+# 3. Never log full card numbers (automatically masked)
+# 4. Never log PIN data (filtered by driver)
+# 5. Store this config file securely with restricted permissions
+# 6. Rotate terminal credentials regularly
+# 7. Use separate terminals for different networks (Mada, KNET)
+# 8. Enable audit logging for all transactions
+# 9. Monitor failed transaction attempts
+# 10. Keep Device Bridge software updated
+#
+# Terminal Security:
+# - Restrict network access to payment terminals
+# - Use firewalls to block unauthorized access
+# - Isolate payment network from other networks
+# - Enable TLS certificate pinning if possible
+# - Monitor terminal connectivity status
+# - Alert on unexpected disconnections
+#
+# Data Protection:
+# - All sensitive data is masked in logs
+# - Card data is never stored by Device Bridge
+# - Transaction data is ephemeral (not persisted)
+# - Use memory-safe languages (Go) to prevent data leaks
+
+# ==============================================================================
+# Troubleshooting
+# ==============================================================================
+#
+# Connection Issues:
+# - Verify terminal IP address and port
+# - Check network connectivity (ping terminal)
+# - Verify firewall rules allow traffic
+# - Check TLS certificate validity
+# - Review terminal logs for errors
+#
+# Transaction Failures:
+# - Check terminal status (connected/disconnected)
+# - Verify terminal_id and merchant_id are correct
+# - Check transaction amount format (cents/fils)
+# - Verify currency code (SAR, KWD, etc.)
+# - Review response codes for decline reason
+#
+# Timeout Issues:
+# - Increase read_timeout for slow transactions
+# - Check network latency
+# - Verify terminal is responsive
+# - Check for terminal software updates
+#
+# Testing:
+# - Use simulator provider for development
+# - Test with small amounts first
+# - Verify receipt printing integration
+# - Test void/refund operations
+# - Test connection retry logic
+# - Perform end-to-end testing before production
+
+# ==============================================================================
+# Currency Codes (ISO 4217)
+# ==============================================================================
+#
+# Common GCC currencies:
+# - 682: SAR (Saudi Riyal) - 2 decimal places
+# - 414: KWD (Kuwaiti Dinar) - 3 decimal places
+# - 048: BHD (Bahraini Dinar) - 3 decimal places
+# - 784: AED (UAE Dirham) - 2 decimal places
+# - 512: OMR (Omani Rial) - 3 decimal places
+# - 634: QAR (Qatari Riyal) - 2 decimal places
+#
+# Note: When setting amounts, use the smallest currency unit:
+# - SAR 10.50 = 1050 (fils)
+# - KWD 10.500 = 10500 (fils)
+
+# ==============================================================================
+# Response Codes Reference
+# ==============================================================================
+#
+# Common response codes:
+# - 00: Approved
+# - 05: Do not honor (generic decline)
+# - 51: Insufficient funds
+# - 54: Expired card
+# - 55: Incorrect PIN
+# - 57: Transaction not permitted to cardholder
+# - 58: Transaction not permitted to terminal
+# - 91: Issuer unavailable
+#
+# Full list available in ISO 8583 specification
