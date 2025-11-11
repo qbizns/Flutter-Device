@@ -1,0 +1,146 @@
+# Device Bridge v2 - Simple Scanner Configuration
+#
+# This is a simplified scanner configuration that works with the current
+# config structure. Use this for quick setup.
+#
+# For advanced configurations with nested config fields, see:
+# config.scanner.example.yaml (requires config structure enhancement)
+
+server:
+  grpc_port: 50051
+  http_port: 8080
+  metrics_port: 9090
+  host: "0.0.0.0"
+
+logging:
+  level: "info"
+  format: "json"
+
+telemetry:
+  metrics:
+    enabled: true
+  tracing:
+    enabled: false
+
+security:
+  mode: "development"
+  tls:
+    enabled: false
+  acl:
+    enabled: false
+
+devices:
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Example 1: Auto-detect First Available Scanner
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Omit vendor_id/product_id to auto-detect the first USB HID scanner found.
+
+  - id: scanner-auto
+    name: "Auto-detected Scanner"
+    kind: scanner.hid
+    enabled: true
+    tags:
+      - "auto"
+      - "lane-1"
+    metadata:
+      location: "Checkout Lane 1"
+      mode: "auto-detect"
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Example 2: Symbol/Zebra LS2208 (Specific Model)
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Specify vendor_id and product_id (in decimal or hex with 0x prefix)
+
+  - id: scanner-symbol-ls2208
+    name: "Symbol LS2208 Front Desk"
+    kind: scanner.hid
+    enabled: false  # Disable if you don't have this scanner
+    vendor_id: 0x05e0   # Symbol/Zebra (hex)
+    product_id: 0x1200  # LS2208 (hex)
+    tags:
+      - "symbol"
+      - "front-desk"
+    metadata:
+      location: "Front Desk"
+      manufacturer: "Symbol/Zebra"
+      model: "LS2208"
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Example 3: Honeywell Voyager 1200g
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  - id: scanner-honeywell
+    name: "Honeywell Voyager 1200g"
+    kind: scanner.hid
+    enabled: false
+    vendor_id: 0x0c2e   # Honeywell
+    product_id: 0x0200  # Voyager 1200g
+    tags:
+      - "honeywell"
+      - "lane-2"
+    metadata:
+      location: "Checkout Lane 2"
+      manufacturer: "Honeywell"
+      model: "Voyager 1200g"
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Example 4: Datalogic QuickScan QD2430
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  - id: scanner-datalogic
+    name: "Datalogic QuickScan"
+    kind: scanner.hid
+    enabled: false
+    vendor_id: 0x05f9   # Datalogic
+    product_id: 0x4204  # QuickScan QD2430
+    tags:
+      - "datalogic"
+      - "2d"
+    metadata:
+      location: "Warehouse"
+      manufacturer: "Datalogic"
+      model: "QuickScan QD2430"
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Virtual Scanner (for testing without hardware)
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  - id: scanner-virtual
+    name: "Virtual Test Scanner"
+    kind: scanner.virtual
+    enabled: false  # Enable for testing
+    tags:
+      - "virtual"
+      - "testing"
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Quick Start
+# ═══════════════════════════════════════════════════════════════════════════
+
+# 1. Discover connected scanners:
+#    $ bridge-cli devices discover --type scanner.hid
+#
+# 2. Edit this file:
+#    - Enable the scanner-auto device OR
+#    - Enable and configure a specific scanner with vendor/product IDs
+#
+# 3. Start the bridge:
+#    $ ./bin/bridge -config configs/config.scanner.simple.yaml
+#
+# 4. Verify scanner is registered:
+#    $ bridge-cli devices list
+#
+# 5. Test scanning:
+#    $ bridge-cli test scan scanner-auto
+#    (Then scan a barcode)
+#
+# For detailed setup instructions:
+#   - docs/SCANNER_SETUP.md
+#   - docs/BUILDING.md
+#
+# Common Scanner Models:
+#   Symbol/Zebra LS2208:    0x05e0:0x1200
+#   Symbol/Zebra DS2208:    0x05e0:0x1300
+#   Honeywell Voyager 1200g: 0x0c2e:0x0200
+#   Honeywell Xenon 1900:   0x0c2e:0x0b61
+#   Datalogic QD2430:       0x05f9:0x4204

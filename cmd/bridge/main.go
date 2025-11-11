@@ -21,6 +21,7 @@ import (
 	"github.com/Macber-eg/Flutter-Device/internal/devices"
 	"github.com/Macber-eg/Flutter-Device/internal/drivers/printer_escpos"
 	"github.com/Macber-eg/Flutter-Device/internal/drivers/printer_zpl"
+	"github.com/Macber-eg/Flutter-Device/internal/drivers/scanner_hid"
 	"github.com/Macber-eg/Flutter-Device/internal/events"
 	"github.com/Macber-eg/Flutter-Device/internal/jobs"
 	"github.com/Macber-eg/Flutter-Device/internal/security"
@@ -128,6 +129,22 @@ func main() {
 		case "printer.virtual":
 			// Create virtual printer
 			device = virtual_devices.NewVirtualPrinter(devCfg.ID, devCfg.Name, logger)
+
+		case "scanner.hid":
+			// Create USB HID scanner
+			scannerConfig := scanner_hid.DefaultConfig()
+			scannerConfig.VendorID = uint16(devCfg.VendorID)
+			scannerConfig.ProductID = uint16(devCfg.ProductID)
+			// Note: Additional config fields (buffer_size, timeout, etc.) can be added to DeviceConfig
+			// For now, using defaults from DefaultConfig()
+
+			device = scanner_hid.NewDriver(
+				devCfg.ID,
+				devCfg.Name,
+				scannerConfig,
+				logger,
+				eventBus,
+			)
 
 		case "scanner.virtual":
 			// Create virtual scanner

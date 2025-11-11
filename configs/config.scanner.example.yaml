@@ -23,7 +23,7 @@ devices:
   # Use this when you have a single scanner and don't care about the model.
 
   - id: scanner-auto
-    type: scanner.hid
+    kind: scanner.hid
     name: "Auto-detected Scanner"
     enabled: true
     tags:
@@ -45,7 +45,7 @@ devices:
   # Use this when you have multiple scanners and need to identify specific ones.
 
   - id: scanner-symbol-ls2208
-    type: scanner.hid
+    kind: scanner.hid
     name: "Symbol LS2208 Front Desk"
     enabled: true
     tags:
@@ -69,7 +69,7 @@ devices:
   # 2D scanner supporting QR codes and DataMatrix in addition to 1D barcodes.
 
   - id: scanner-symbol-ds2208
-    type: scanner.hid
+    kind: scanner.hid
     name: "Symbol DS2208 Main"
     enabled: true
     tags:
@@ -95,7 +95,7 @@ devices:
   # Popular single-line laser scanner for retail.
 
   - id: scanner-honeywell-voyager
-    type: scanner.hid
+    kind: scanner.hid
     name: "Honeywell Voyager 1200g"
     enabled: true
     tags:
@@ -119,7 +119,7 @@ devices:
   # High-performance 2D area imager.
 
   - id: scanner-honeywell-xenon
-    type: scanner.hid
+    kind: scanner.hid
     name: "Honeywell Xenon 1900"
     enabled: true
     tags:
@@ -144,7 +144,7 @@ devices:
   # Datalogic 2D handheld scanner.
 
   - id: scanner-datalogic-quickscan
-    type: scanner.hid
+    kind: scanner.hid
     name: "Datalogic QuickScan"
     enabled: true
     tags:
@@ -171,7 +171,7 @@ devices:
   # to find serial numbers.
 
   - id: scanner-lane-4a
-    type: scanner.hid
+    kind: scanner.hid
     name: "Scanner Lane 4A"
     enabled: true
     tags:
@@ -189,7 +189,7 @@ devices:
       position: "main"
 
   - id: scanner-lane-4b
-    type: scanner.hid
+    kind: scanner.hid
     name: "Scanner Lane 4B"
     enabled: true
     tags:
@@ -212,7 +212,7 @@ devices:
   # Optimized for high-volume scanning scenarios.
 
   - id: scanner-high-throughput
-    type: scanner.hid
+    kind: scanner.hid
     name: "High-throughput Scanner"
     enabled: true
     tags:
