@@ -3,14 +3,14 @@
 **Plan Reference:** [14_WEEK_COMPLETION_PLAN.md](14_WEEK_COMPLETION_PLAN.md)
 **Start Date:** 2025-11-11
 **Target Completion:** 2025-02-17
-**Current Week:** 3 of 14
+**Current Week:** 5 of 14
 
 ---
 
 ## Overall Progress
 
 ```
-███████░░░░░░░░░░░░░░░░░░░░░ 21% Complete (3/14 weeks)
+█████████████░░░░░░░░░░░░░░░ 36% Complete (5/14 weeks)
 ```
 
 **Status:** 🎯 On Track
@@ -25,8 +25,7 @@
 | **1** | LICENSE + Scale Polish | ✅ Complete | 100% | 2025-11-11 |
 | **2** | USB Validation & Documentation | ✅ Complete | 100% | 2025-11-11 |
 | **3** | USB Printer | ✅ Complete | 100% | 2025-11-11 |
-| 4 | Auto-Discovery Framework | ⏳ Not Started | 0% | - |
-| 5 | Discovery Integration | ⏳ Not Started | 0% | - |
+| **4-5** | Auto-Discovery Framework | ✅ Complete | 100% | 2025-11-11 |
 | 6 | Scale Hardware Validation | ⏳ Not Started | 0% | - |
 | 7 | Payment Foundation | ⏳ Not Started | 0% | - |
 | 8 | Payment Transactions | ⏳ Not Started | 0% | - |
@@ -115,6 +114,64 @@
 - Full ESC/POS feature set: text formatting, barcodes, QR codes, cash drawer
 - Cross-platform (Linux Tier 1, macOS/Windows Tier 2)
 - Production-ready with comprehensive documentation
+
+---
+
+## Current Sprint: Week 4-5 (Nov 11, 2025) ✅ COMPLETE
+
+### Goals
+- ✅ Implement USB discovery (printers + scanners)
+- ✅ Implement serial port discovery with protocol auto-detection
+- ✅ Implement mDNS network discovery
+- ✅ Enhance discovery manager with events and callbacks
+- ✅ Background discovery worker
+- ✅ Comprehensive documentation and examples
+
+### Accomplishments
+- Created USB discovery scanner (usb.go - 280 lines):
+  - Enumerate USB printers (Class 0x07) and HID scanners
+  - Vendor/Product ID database for device identification
+  - Support for Epson, Star, Citizen, Bixolon, Symbol/Zebra, Honeywell, Datalogic
+  - Integration with printer_usb and scanner_hid enumeration
+
+- Created serial port discovery scanner (serial.go - 320 lines):
+  - Enumerate all serial ports (COM/tty)
+  - Auto-probe scales with multiple protocols
+  - Support for MT-SICS, CAS, Dibal, Toledo protocols
+  - Multi-baud rate detection (9600, 19200, 4800, 38400)
+  - Protocol detection from response format
+
+- Created mDNS network discovery scanner (mdns.go - 240 lines):
+  - Bonjour/Zeroconf service discovery
+  - Support for _ipp._tcp, _printer._tcp, _pdl-datastream._tcp
+  - IPv4/IPv6 address resolution
+  - TXT record parsing for device metadata
+
+- Enhanced discovery manager (discovery.go):
+  - Event publishing system (DiscoveryCallback)
+  - discovery.discovered and discovery.removed events
+  - Event bus integration for pub/sub
+  - Auto-registration support (configurable)
+  - Stale device removal (5-minute threshold)
+  - Duplicate detection
+
+- Comprehensive documentation:
+  - DISCOVERY.md (580+ lines) - complete discovery guide
+  - config.discovery.example.yaml (340 lines) - 10 configuration examples
+  - Transport comparison tables
+  - Performance optimization guidelines
+  - Troubleshooting guide
+
+- Dependencies:
+  - Added hashicorp/mdns v1.0.6 for mDNS discovery
+
+### Impact
+- Resolves "No auto-discovery" gap from due diligence
+- Enables zero-configuration device setup
+- Supports all major device transports (USB, Serial, Network)
+- Event-driven architecture for real-time device monitoring
+- Production-ready with configurable scan intervals
+- Reduces manual configuration burden significantly
 
 ---
 

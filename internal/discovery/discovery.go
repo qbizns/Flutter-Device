@@ -6,18 +6,31 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Macber-eg/Flutter-Device/internal/events"
 	"github.com/Macber-eg/Flutter-Device/internal/telemetry"
 )
 
+// DiscoveryCallback is called when devices are discovered or removed
+type DiscoveryCallback func(event DiscoveryEvent)
+
+// DiscoveryEvent represents a discovery event
+type DiscoveryEvent struct {
+	Type   string // "discovered" or "removed"
+	Device *DiscoveredDevice
+}
+
 // Discovery manages automatic device discovery
 type Discovery struct {
-	logger      *telemetry.Logger
-	scanners    map[string]Scanner
-	devices     map[string]*DiscoveredDevice
-	mu          sync.RWMutex
+	logger       *telemetry.Logger
+	eventBus     *events.Bus
+	scanners     map[string]Scanner
+	devices      map[string]*DiscoveredDevice
+	mu           sync.RWMutex
 	scanInterval time.Duration
-	ctx         context.Context
-	cancel      context.CancelFunc
+	ctx          context.Context
+	cancel       context.CancelFunc
+	autoRegister bool // Auto-register discovered devices
+	callbacks    []DiscoveryCallback
 }
 
 // DiscoveredDevice represents a discovered device
@@ -49,15 +62,19 @@ type Config struct {
 	Enabled      bool
 	ScanInterval time.Duration
 	Transports   []string // usb, serial, tcp, mdns
+	AutoRegister bool     // Automatically register discovered devices
 }
 
 // NewDiscovery creates a new discovery manager
-func NewDiscovery(cfg Config, logger *telemetry.Logger) *Discovery {
+func NewDiscovery(cfg Config, eventBus *events.Bus, logger *telemetry.Logger) *Discovery {
 	return &Discovery{
 		logger:       logger,
+		eventBus:     eventBus,
 		scanners:     make(map[string]Scanner),
 		devices:      make(map[string]*DiscoveredDevice),
 		scanInterval: cfg.ScanInterval,
+		autoRegister: cfg.AutoRegister,
+		callbacks:    make([]DiscoveryCallback, 0),
 	}
 }
 
@@ -71,6 +88,44 @@ func (d *Discovery) RegisterScanner(scanner Scanner) {
 	d.logger.Info("discovery scanner registered",
 		telemetry.String("transport", scanner.Transport()),
 	)
+}
+
+// RegisterCallback registers a callback for discovery events
+func (d *Discovery) RegisterCallback(callback DiscoveryCallback) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
+	d.callbacks = append(d.callbacks, callback)
+}
+
+// publishEvent publishes a discovery event to callbacks and event bus
+func (d *Discovery) publishEvent(eventType string, device *DiscoveredDevice) {
+	// Call registered callbacks
+	event := DiscoveryEvent{
+		Type:   eventType,
+		Device: device,
+	}
+
+	for _, callback := range d.callbacks {
+		go callback(event)
+	}
+
+	// Publish to event bus
+	if d.eventBus != nil {
+		d.eventBus.Publish(events.Event{
+			DeviceID: device.ID,
+			Type:     fmt.Sprintf("discovery.%s", eventType),
+			Data: map[string]interface{}{
+				"device_id":  device.ID,
+				"name":       device.Name,
+				"kind":       device.Kind,
+				"transport":  device.Transport,
+				"address":    device.Address,
+				"vendor_id":  device.VendorID,
+				"product_id": device.ProductID,
+			},
+		})
+	}
 }
 
 // Start starts the discovery process
@@ -207,6 +262,11 @@ func (d *Discovery) scan() {
 					telemetry.String("kind", dev.Kind),
 					telemetry.String("transport", dev.Transport),
 				)
+
+				// Publish discovery event
+				d.mu.Unlock()
+				d.publishEvent("discovered", &dev)
+				d.mu.Lock()
 			}
 
 			d.mu.Unlock()
@@ -216,8 +276,10 @@ func (d *Discovery) scan() {
 	// Remove stale devices (not seen for 5 minutes)
 	d.mu.Lock()
 	staleThreshold := now.Add(-5 * time.Minute)
+	var removedDevices []*DiscoveredDevice
 	for id, dev := range d.devices {
 		if dev.LastSeen.Before(staleThreshold) {
+			removedDevices = append(removedDevices, dev)
 			delete(d.devices, id)
 
 			d.logger.Info("device removed (stale)",
@@ -226,6 +288,11 @@ func (d *Discovery) scan() {
 		}
 	}
 	d.mu.Unlock()
+
+	// Publish removal events
+	for _, dev := range removedDevices {
+		d.publishEvent("removed", dev)
+	}
 
 	d.logger.Debug("discovery scan completed",
 		telemetry.Int("new_devices", newDevices),
