@@ -563,7 +563,7 @@ devices:
 
 ```
 Week 1-3:   USB HID Scanner Driver ██████████████▒░░░░░░░░░░░  W1:95% W2:100% W3:HW ✅
-Week 4-6:   Serial Scale Driver    ░░░░░░░░░░░░░░████████░░░░
+Week 4-6:   Serial Scale Driver    ██████████████████░░░░░░░░  W4:100% W5:80% W6:0%
 Week 7-9:   Payment Terminal       ░░░░░░░░░░░░░░░░░░░░████░░
 Week 10-11: Extended Testing       ░░░░░░░░░░░░░░░░░░░░░░░░██
 Week 12-13: Production Features    ░░░░░░░░░░░░░░░░░░░░░░░░░█
@@ -757,9 +757,15 @@ The USB HID Scanner driver is **software complete** (Week 1-2: 100%). You have *
 
 **In Progress:**
 - ⏳ USB HID Scanner hardware validation (pending physical scanner)
+- ⏳ Serial Scale Driver - Week 5 (CAS protocol ✅, documentation ✅)
 
 **Next:**
-- 🎯 Stage 2: Serial Scale Driver (recommended to start now)
+- 🎯 Week 5 remaining: Generic protocol, hardware test framework
+- 🎯 Week 6: Additional protocols (Dibal, Toledo), CLI commands
 - 🎯 Scanner hardware testing (when scanner available)
 
-**Phase 3 Progress:** 12% overall (2/14 weeks software complete)
+**Phase 3 Progress:** 28% overall (4/14 weeks software complete)
+- Week 1-2: USB HID Scanner ✅ 100%
+- Week 3: Hardware validation (deferred)
+- Week 4: Serial Scale foundation ✅ 100%
+- Week 5: CAS protocol & docs ⏳ 80%
