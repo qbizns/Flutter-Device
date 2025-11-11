@@ -391,6 +391,8 @@ func createProtocol(name string) (Protocol, error) {
 	switch name {
 	case "mtsics", "mt-sics", "mettler":
 		return NewMTSICSProtocol(), nil
+	case "cas":
+		return NewCASProtocol(), nil
 	default:
 		return nil, fmt.Errorf("unknown protocol: %s", name)
 	}

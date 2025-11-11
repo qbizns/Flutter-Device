@@ -1,0 +1,98 @@
+# Simple Serial Scale Configuration Examples
+# ==========================================
+#
+# This file contains simple, flat configuration examples for serial scales.
+# For more advanced examples with detailed documentation, see config.scale.example.yaml
+
+# Example 1: Mettler Toledo Scale (MT-SICS protocol)
+# --------------------------------------------------
+# Most common configuration for Mettler Toledo scales using the MT-SICS protocol
+
+devices:
+  - id: mettler-scale-01
+    name: "Mettler Toledo Scale"
+    kind: scale.serial
+    enabled: true
+    metadata:
+      port: "/dev/ttyUSB0"           # Linux/Mac: /dev/ttyUSB0, Windows: COM1
+      baud_rate: 9600
+      protocol: "mtsics"              # MT-SICS protocol
+      data_bits: 8
+      parity: "none"
+      stop_bits: 1
+
+# Example 2: CAS Scale (Korean Manufacturer)
+# ------------------------------------------
+# Configuration for CAS retail scales (common in Asian markets)
+
+  - id: cas-scale-01
+    name: "CAS Retail Scale"
+    kind: scale.serial
+    enabled: true
+    metadata:
+      port: "/dev/ttyUSB1"
+      baud_rate: 9600
+      protocol: "cas"                 # CAS protocol
+      data_bits: 8
+      parity: "none"
+      stop_bits: 1
+
+# Example 3: Auto-detect Scale
+# ----------------------------
+# Let the bridge auto-detect the scale by trying common protocols
+
+  - id: auto-scale-01
+    name: "Auto-detect Scale"
+    kind: scale.serial
+    enabled: true
+    metadata:
+      port: "/dev/ttyUSB0"
+      baud_rate: 9600
+      protocol: "mtsics"              # Start with MT-SICS, most common
+      data_bits: 8
+      parity: "none"
+      stop_bits: 1
+
+# Example 4: High-precision Scale
+# --------------------------------
+# Configuration for laboratory or jewelry scales with higher baud rate
+
+  - id: precision-scale-01
+    name: "High Precision Scale"
+    kind: scale.serial
+    enabled: true
+    metadata:
+      port: "/dev/ttyUSB0"
+      baud_rate: 19200               # Higher baud rate for precision scales
+      protocol: "mtsics"
+      data_bits: 8
+      parity: "even"                 # Some precision scales use even parity
+      stop_bits: 1
+
+# Quick Port Reference:
+# --------------------
+# Linux:   /dev/ttyUSB0, /dev/ttyUSB1, /dev/ttyS0
+# macOS:   /dev/cu.usbserial, /dev/tty.usbserial
+# Windows: COM1, COM2, COM3
+
+# Supported Protocols:
+# -------------------
+# - mtsics    : Mettler Toledo Standard Interface Command Set (most common)
+# - mt-sics   : Alias for mtsics
+# - mettler   : Alias for mtsics
+# - cas       : CAS (Korean manufacturer) protocol
+
+# Common Baud Rates:
+# -----------------
+# - 9600    : Most common, default for many scales
+# - 19200   : High-precision scales
+# - 38400   : Some modern scales
+# - 4800    : Older scales
+
+# To test your scale:
+# ------------------
+# 1. Connect the scale to your computer via USB or serial port
+# 2. Identify the port (use `ls /dev/tty*` on Linux/Mac, Device Manager on Windows)
+# 3. Update the port in the configuration above
+# 4. Start the bridge: ./bridge --config configs/config.scale.simple.yaml
+# 5. Use the bridge-cli to test: bridge-cli devices list

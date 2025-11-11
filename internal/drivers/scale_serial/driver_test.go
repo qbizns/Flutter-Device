@@ -353,6 +353,7 @@ func TestCreateProtocol(t *testing.T) {
 		{"mtsics", "mtsics", false},
 		{"mt-sics", "mt-sics", false},
 		{"mettler", "mettler", false},
+		{"cas", "cas", false},
 		{"unknown", "unknown", true},
 		{"empty", "", true},
 	}

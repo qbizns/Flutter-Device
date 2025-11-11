@@ -1,0 +1,337 @@
+# Serial Scale Configuration Examples
+# ====================================
+#
+# This file contains comprehensive configuration examples for serial scales
+# with various manufacturers, protocols, and advanced options.
+#
+# For simple, quick-start configurations, see config.scale.simple.yaml
+
+# Server Configuration
+server:
+  grpc:
+    address: ":50051"
+  rest:
+    address: ":8080"
+  websocket:
+    path: "/ws"
+
+security:
+  mode: "development"  # Use "production" for real deployments
+
+# Serial Scale Devices
+devices:
+
+  # ============================================================================
+  # Example 1: Mettler Toledo Industrial Scale (MT-SICS Protocol)
+  # ============================================================================
+  # Mettler Toledo is the industry standard for precision weighing.
+  # The MT-SICS protocol (Mettler Toledo Standard Interface Command Set)
+  # is widely supported across their product line.
+
+  - id: mettler-industrial-01
+    name: "Mettler Toledo ICS685 Industrial Scale"
+    kind: scale.serial
+    enabled: true
+    metadata:
+      # Serial Port Configuration
+      port: "/dev/ttyUSB0"          # Linux: /dev/ttyUSB0, Mac: /dev/cu.usbserial, Windows: COM1
+      baud_rate: 9600               # MT-SICS standard: 9600 baud
+      data_bits: 8                  # 8 data bits (standard)
+      parity: "none"                # No parity (standard for MT-SICS)
+      stop_bits: 1                  # 1 stop bit (standard)
+
+      # Protocol Configuration
+      protocol: "mtsics"            # MT-SICS protocol
+      read_timeout: 1000            # Read timeout in milliseconds
+      retry_attempts: 3             # Number of retry attempts for failed reads
+      retry_delay: 100              # Delay between retries in milliseconds
+
+      # Weight Unit Preference
+      preferred_unit: "kg"          # Preferred unit: g, kg, lb, oz
+
+  # ============================================================================
+  # Example 2: Mettler Toledo Retail Scale (RS232 Connection)
+  # ============================================================================
+  # Retail scales typically use the same MT-SICS protocol but may have
+  # different serial port settings.
+
+  - id: mettler-retail-01
+    name: "Mettler Toledo PS60 Retail Scale"
+    kind: scale.serial
+    enabled: true
+    metadata:
+      port: "/dev/ttyUSB1"
+      baud_rate: 9600
+      data_bits: 8
+      parity: "none"
+      stop_bits: 1
+      protocol: "mtsics"
+      read_timeout: 1000
+      preferred_unit: "g"           # Retail scales often display in grams
+
+  # ============================================================================
+  # Example 3: CAS Scale (Korean Manufacturer - Asian Markets)
+  # ============================================================================
+  # CAS scales are popular in Asian markets and retail environments.
+  # They use a proprietary binary protocol with STX/ETX delimiters.
+
+  - id: cas-retail-01
+    name: "CAS CL5000 Retail Scale"
+    kind: scale.serial
+    enabled: true
+    metadata:
+      port: "/dev/ttyUSB2"
+      baud_rate: 9600               # CAS standard: 9600 baud
+      data_bits: 8
+      parity: "none"
+      stop_bits: 1
+      protocol: "cas"               # CAS protocol (binary with STX/ETX)
+      read_timeout: 1000
+      preferred_unit: "kg"
+
+  # ============================================================================
+  # Example 4: CAS Scale with Different Serial Settings
+  # ============================================================================
+  # Some CAS models may use different serial port configurations.
+
+  - id: cas-precision-01
+    name: "CAS MW-II Precision Scale"
+    kind: scale.serial
+    enabled: true
+    metadata:
+      port: "/dev/ttyUSB3"
+      baud_rate: 19200              # Higher baud rate for precision models
+      data_bits: 8
+      parity: "even"                # Some models use even parity
+      stop_bits: 1
+      protocol: "cas"
+      read_timeout: 1500            # Longer timeout for precision readings
+      retry_attempts: 5             # More retries for critical measurements
+      preferred_unit: "g"
+
+  # ============================================================================
+  # Example 5: Laboratory Scale (High Precision)
+  # ============================================================================
+  # Laboratory scales require high precision and stable readings.
+
+  - id: lab-scale-01
+    name: "Mettler Toledo XP205 Analytical Balance"
+    kind: scale.serial
+    enabled: true
+    metadata:
+      port: "/dev/ttyUSB4"
+      baud_rate: 19200              # Higher baud rate for lab equipment
+      data_bits: 8
+      parity: "even"                # Even parity for data integrity
+      stop_bits: 1
+      protocol: "mtsics"
+      read_timeout: 2000            # Longer timeout for stable readings
+      retry_attempts: 1             # Minimal retries to avoid disturbing the scale
+      preferred_unit: "g"
+
+  # ============================================================================
+  # Example 6: Jewelry Scale (Troy Ounces)
+  # ============================================================================
+  # Jewelry scales often use troy ounces for precious metals.
+
+  - id: jewelry-scale-01
+    name: "Mettler Toledo JL602 Jewelry Scale"
+    kind: scale.serial
+    enabled: true
+    metadata:
+      port: "/dev/ttyUSB5"
+      baud_rate: 9600
+      data_bits: 8
+      parity: "none"
+      stop_bits: 1
+      protocol: "mtsics"
+      read_timeout: 1000
+      preferred_unit: "ozt"         # Troy ounces for precious metals
+
+  # ============================================================================
+  # Example 7: Shipping/Postal Scale (Imperial Units)
+  # ============================================================================
+  # Shipping scales in US typically use pounds and ounces.
+
+  - id: shipping-scale-01
+    name: "Mettler Toledo PS90 Shipping Scale"
+    kind: scale.serial
+    enabled: true
+    metadata:
+      port: "/dev/ttyUSB6"
+      baud_rate: 9600
+      data_bits: 8
+      parity: "none"
+      stop_bits: 1
+      protocol: "mtsics"
+      read_timeout: 1000
+      preferred_unit: "lb"          # Pounds for shipping
+
+  # ============================================================================
+  # Example 8: Multiple Scales on One System
+  # ============================================================================
+  # You can configure multiple scales on different ports for complex setups
+  # like multi-station retail environments or production lines.
+
+  - id: checkout-scale-01
+    name: "Checkout Station 1 Scale"
+    kind: scale.serial
+    enabled: true
+    metadata:
+      port: "/dev/ttyUSB10"
+      baud_rate: 9600
+      protocol: "cas"
+      preferred_unit: "kg"
+
+  - id: checkout-scale-02
+    name: "Checkout Station 2 Scale"
+    kind: scale.serial
+    enabled: true
+    metadata:
+      port: "/dev/ttyUSB11"
+      baud_rate: 9600
+      protocol: "cas"
+      preferred_unit: "kg"
+
+  - id: produce-scale-01
+    name: "Produce Department Scale"
+    kind: scale.serial
+    enabled: true
+    metadata:
+      port: "/dev/ttyUSB12"
+      baud_rate: 9600
+      protocol: "mtsics"
+      preferred_unit: "g"
+
+  # ============================================================================
+  # Example 9: Windows Configuration
+  # ============================================================================
+  # Windows uses COM ports instead of /dev/tty* paths.
+
+  - id: windows-scale-01
+    name: "Windows Scale COM1"
+    kind: scale.serial
+    enabled: false                  # Disabled by default (enable on Windows)
+    metadata:
+      port: "COM1"                  # Windows COM port
+      baud_rate: 9600
+      data_bits: 8
+      parity: "none"
+      stop_bits: 1
+      protocol: "mtsics"
+
+  # ============================================================================
+  # Example 10: macOS Configuration
+  # ============================================================================
+  # macOS uses /dev/cu.* or /dev/tty.* paths for USB serial devices.
+
+  - id: macos-scale-01
+    name: "macOS Scale USB Serial"
+    kind: scale.serial
+    enabled: false                  # Disabled by default (enable on macOS)
+    metadata:
+      port: "/dev/cu.usbserial-1420"  # macOS USB serial port
+      baud_rate: 9600
+      data_bits: 8
+      parity: "none"
+      stop_bits: 1
+      protocol: "mtsics"
+
+
+# ============================================================================
+# Protocol Reference
+# ============================================================================
+#
+# Supported Protocols:
+#
+# 1. MT-SICS (Mettler Toledo Standard Interface Command Set)
+#    - Manufacturer: Mettler Toledo
+#    - Format: ASCII text-based protocol
+#    - Line Terminator: CR+LF (\r\n)
+#    - Commands: SI (send weight immediately), S (send stable weight), Z (zero), T (tare)
+#    - Response Format: "S       1234.5 g\r\n" (status + weight + unit)
+#    - Status Codes: S (stable), D (dynamic/unstable), + (overload), - (underload)
+#    - Aliases: "mtsics", "mt-sics", "mettler"
+#
+# 2. CAS (Korean Manufacturer Protocol)
+#    - Manufacturer: CAS Corporation (Korea)
+#    - Format: Binary protocol with STX/ETX delimiters
+#    - Line Terminator: ETX (0x03)
+#    - Commands: <STX>W<ETX> (weight), <STX>Z<ETX> (zero), <STX>T<ETX> (tare)
+#    - Response Format: <STX><Status><6-digit weight><unit><ETX>
+#    - Status Codes: S (stable), U (unstable), E (error)
+#    - Weight Format: 6 digits with implied decimal (001234 = 123.4)
+#    - Variants: Some models include checksum byte after ETX
+#    - Aliases: "cas"
+#
+# ============================================================================
+# Port Detection
+# ============================================================================
+#
+# Linux:
+#   - List ports: ls /dev/tty{USB,S}*
+#   - Common paths: /dev/ttyUSB0, /dev/ttyUSB1, /dev/ttyS0
+#   - Permissions: User must be in 'dialout' group or run with sudo
+#
+# macOS:
+#   - List ports: ls /dev/{tty,cu}.*
+#   - Common paths: /dev/cu.usbserial, /dev/tty.usbserial
+#   - No special permissions required
+#
+# Windows:
+#   - List ports: Device Manager → Ports (COM & LPT)
+#   - Common paths: COM1, COM2, COM3
+#   - No special permissions required
+#
+# ============================================================================
+# Troubleshooting
+# ============================================================================
+#
+# Problem: "Permission denied" error on Linux
+# Solution: Add user to dialout group:
+#   sudo usermod -a -G dialout $USER
+#   (Log out and log back in for changes to take effect)
+#
+# Problem: Scale not responding
+# Solutions:
+#   1. Verify correct port (check with `ls /dev/tty*`)
+#   2. Check cable connection
+#   3. Verify baud rate matches scale settings
+#   4. Try different protocol (mtsics vs cas)
+#   5. Increase read_timeout to 2000ms
+#   6. Check scale power and display
+#
+# Problem: Incorrect weight readings
+# Solutions:
+#   1. Verify preferred_unit matches expected unit
+#   2. Check decimal places (CAS protocol has configurable decimals)
+#   3. Try zero/tare operation
+#   4. Check for protocol mismatch
+#
+# Problem: Unstable readings
+# Solutions:
+#   1. Ensure scale is on stable surface
+#   2. Increase read_timeout
+#   3. Use stable weight command (protocol dependent)
+#   4. Check for environmental factors (vibration, air currents)
+#
+# ============================================================================
+# Testing Your Scale
+# ============================================================================
+#
+# 1. Start the bridge:
+#    ./bridge --config configs/config.scale.example.yaml
+#
+# 2. List devices to verify scale is registered:
+#    bridge-cli devices list
+#
+# 3. Read weight:
+#    bridge-cli scale read <scale-id>
+#
+# 4. Zero the scale:
+#    bridge-cli scale zero <scale-id>
+#
+# 5. Tare the scale:
+#    bridge-cli scale tare <scale-id>
+#
+# ============================================================================

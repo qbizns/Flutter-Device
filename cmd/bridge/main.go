@@ -21,13 +21,14 @@ import (
 	"github.com/Macber-eg/Flutter-Device/internal/devices"
 	"github.com/Macber-eg/Flutter-Device/internal/drivers/printer_escpos"
 	"github.com/Macber-eg/Flutter-Device/internal/drivers/printer_zpl"
+	"github.com/Macber-eg/Flutter-Device/internal/drivers/scale_serial"
 	"github.com/Macber-eg/Flutter-Device/internal/drivers/scanner_hid"
 	"github.com/Macber-eg/Flutter-Device/internal/events"
 	"github.com/Macber-eg/Flutter-Device/internal/jobs"
 	"github.com/Macber-eg/Flutter-Device/internal/security"
 	"github.com/Macber-eg/Flutter-Device/internal/telemetry"
-	"github.com/Macber-eg/Flutter-Device/test/virtual_devices"
 	pb "github.com/Macber-eg/Flutter-Device/proto/devicebridge/v1"
+	"github.com/Macber-eg/Flutter-Device/test/virtual_devices"
 )
 
 const version = "2.0.0-dev"
@@ -149,6 +150,38 @@ func main() {
 		case "scanner.virtual":
 			// Create virtual scanner
 			device = virtual_devices.NewVirtualScanner(devCfg.ID, devCfg.Name, logger, eventBus)
+
+		case "scale.serial":
+			// Create serial scale
+			scaleConfig := scale_serial.DefaultConfig()
+
+			// Parse configuration from DeviceConfig metadata
+			if devCfg.Metadata != nil {
+				if port, ok := devCfg.Metadata["port"].(string); ok {
+					scaleConfig.Port = port
+				}
+				if baudRate, ok := devCfg.Metadata["baud_rate"].(int); ok {
+					scaleConfig.BaudRate = baudRate
+				}
+				if protocol, ok := devCfg.Metadata["protocol"].(string); ok {
+					scaleConfig.Protocol = protocol
+				}
+			}
+
+			scaleDriver, err := scale_serial.NewDriver(
+				devCfg.ID,
+				devCfg.Name,
+				scaleConfig,
+				logger,
+			)
+			if err != nil {
+				logger.Error("failed to create scale driver",
+					telemetry.String("device_id", devCfg.ID),
+					telemetry.Error(err),
+				)
+				continue
+			}
+			device = scaleDriver
 
 		case "scale.virtual":
 			// Create virtual scale
