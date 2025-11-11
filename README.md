@@ -2,7 +2,7 @@
 
 > A production-grade hardware abstraction layer for POS and retail devices
 
-[![License](https://img.shields.io/badge/license-TBD-blue.svg)](LICENSE)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Go Version](https://img.shields.io/badge/go-1.22%2B-blue.svg)](https://golang.org/dl/)
 [![Status](https://img.shields.io/badge/status-mvp--complete-brightgreen.svg)](IMPLEMENTATION_STATUS.md)
 [![Progress](https://img.shields.io/badge/progress-100%25-brightgreen.svg)](IMPLEMENTATION_STATUS.md)
@@ -15,7 +15,7 @@ Device Bridge v2 is a local or network microservice that acts as a **unified har
 
 **Core Philosophy:** Clients never talk to hardware directly. They communicate with Device Bridge via a stable, versioned API.
 
-**Current Status:** ✅ Phase 2 Enhancement - Device Drivers & Discovery (see [Quick Start](QUICKSTART.md) | [Phase 2 Roadmap](PHASE_2_ROADMAP.md))
+**Current Status:** ✅ Phase 3 Production Hardening - Week 5 Complete (see [Quick Start](QUICKSTART.md) | [14-Week Completion Plan](14_WEEK_COMPLETION_PLAN.md) | [Progress Tracker](PROGRESS_TRACKER.md))
 
 **Phase 1 MVP (100% ✅):**
 - ✅ Complete infrastructure (config, logging, metrics)
@@ -581,7 +581,7 @@ security:
 
 ## License
 
-TBD
+MIT License - see [LICENSE](LICENSE) file for details
 
 ---
 
