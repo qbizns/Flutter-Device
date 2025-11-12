@@ -100,7 +100,7 @@ func runTestScan(cmd *cobra.Command, args []string) error {
 	verbosePrintf("Subscribing to scan events from device: %s\n", deviceID)
 
 	// Subscribe to scan events
-	stream, err := client.SubscribeScanEvents(ctx, &pb.SubscribeScanEventsRequest{
+	stream, err := client.SubscribeScanner(ctx, &pb.SubscribeScannerRequest{
 		DeviceId: deviceID,
 	})
 	if err != nil {

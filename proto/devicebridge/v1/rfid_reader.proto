@@ -1,0 +1,840 @@
+// Copyright 2025 Device Bridge
+// RFID/NFC Reader Service - Protocol Buffer Definition
+// Version: 1.0.0
+
+syntax = "proto3";
+
+package devicebridge.v1;
+
+option go_package = "github.com/Macber-eg/Flutter-Device/proto/devicebridge/v1";
+
+import "google/protobuf/timestamp.proto";
+import "proto/devicebridge/v1/common.proto";
+
+// RFIDReader service provides access to RFID/NFC card readers
+// for event access control, employee authentication, and visitor tracking
+service RFIDReader {
+  // ReadCard reads a card when presented to the reader (blocking call)
+  rpc ReadCard(ReadCardRequest) returns (ReadCardResponse);
+
+  // SubscribeCardReads subscribes to card read events (streaming)
+  rpc SubscribeCardReads(SubscribeCardReadsRequest) returns (stream CardReadEvent);
+
+  // AuthenticateCard authenticates a card against stored credentials
+  rpc AuthenticateCard(AuthenticateCardRequest) returns (AuthenticateCardResponse);
+
+  // WriteCard writes data to a card (for programmable cards)
+  rpc WriteCard(WriteCardRequest) returns (WriteCardResponse);
+
+  // GetReaderStatus returns current reader status
+  rpc GetReaderStatus(GetReaderStatusRequest) returns (ReaderStatus);
+
+  // SubscribeReaderEvents subscribes to reader events (connect/disconnect/error)
+  rpc SubscribeReaderEvents(SubscribeReaderEventsRequest) returns (stream ReaderEvent);
+
+  // SetReaderMode sets the reader operation mode
+  rpc SetReaderMode(SetReaderModeRequest) returns (SetReaderModeResponse);
+
+  // GetSupportedCardTypes returns card types supported by this reader
+  rpc GetSupportedCardTypes(GetSupportedCardTypesRequest) returns (GetSupportedCardTypesResponse);
+}
+
+// ==================================================
+// Read Card Messages
+// ==================================================
+
+message ReadCardRequest {
+  // Required: Device ID of the RFID reader
+  string device_id = 1;
+
+  // Optional: Timeout for read operation (default: 30s)
+  int32 timeout_seconds = 2;
+
+  // Optional: Expected card types (empty = any)
+  repeated CardType expected_types = 3;
+
+  // Optional: Read options
+  ReadOptions options = 4;
+}
+
+message ReadCardResponse {
+  // Card data read from the card
+  CardData card = 1;
+
+  // Reader that performed the read
+  string device_id = 2;
+
+  // Timestamp of the read
+  google.protobuf.Timestamp timestamp = 3;
+
+  // Read quality/signal strength (0-100)
+  int32 signal_strength = 4;
+}
+
+message ReadOptions {
+  // Read full card data (not just UID)
+  bool read_full_data = 1;
+
+  // Authenticate before reading (requires keys)
+  bool authenticate = 2;
+
+  // Authentication keys (if needed)
+  repeated bytes auth_keys = 3;
+
+  // Specific sectors/blocks to read (empty = all)
+  repeated int32 sectors = 4;
+  repeated int32 blocks = 5;
+
+  // Beep on successful read
+  bool beep_on_read = 6;
+
+  // LED flash on successful read
+  bool flash_on_read = 7;
+}
+
+// ==================================================
+// Card Data Structures
+// ==================================================
+
+message CardData {
+  // Card type detected
+  CardType type = 1;
+
+  // Card UID/CSN (always present)
+  bytes uid = 2;
+
+  // Card serial number (human-readable)
+  string serial_number = 3;
+
+  // Technology type
+  CardTechnology technology = 4;
+
+  // Card protocol details
+  oneof protocol_data {
+    ProxCardData prox = 10;
+    MifareCardData mifare = 11;
+    IClassCardData iclass = 12;
+    NTAGCardData ntag = 13;
+    DESFireCardData desfire = 14;
+    FeliCaCardData felica = 15;
+  }
+
+  // Raw card data (if read_full_data enabled)
+  repeated CardBlock blocks = 20;
+
+  // NDEF records (for NFC tags)
+  repeated NDEFRecord ndef_records = 21;
+
+  // Card capabilities
+  CardCapabilities capabilities = 22;
+}
+
+enum CardType {
+  CARD_TYPE_UNKNOWN = 0;
+
+  // 125 kHz Proximity Cards
+  CARD_TYPE_HID_PROX = 1;
+  CARD_TYPE_EM4100 = 2;
+  CARD_TYPE_INDALA = 3;
+
+  // 13.56 MHz Contactless Cards
+  CARD_TYPE_MIFARE_CLASSIC_1K = 10;
+  CARD_TYPE_MIFARE_CLASSIC_4K = 11;
+  CARD_TYPE_MIFARE_ULTRALIGHT = 12;
+  CARD_TYPE_MIFARE_ULTRALIGHT_C = 13;
+  CARD_TYPE_MIFARE_PLUS = 14;
+  CARD_TYPE_MIFARE_DESFIRE = 15;
+
+  // HID iClass
+  CARD_TYPE_HID_ICLASS = 20;
+  CARD_TYPE_HID_ICLASS_SE = 21;
+  CARD_TYPE_HID_SEOS = 22;
+
+  // NFC Tags
+  CARD_TYPE_NTAG_213 = 30;
+  CARD_TYPE_NTAG_215 = 31;
+  CARD_TYPE_NTAG_216 = 32;
+
+  // Other Standards
+  CARD_TYPE_ISO14443A = 40;
+  CARD_TYPE_ISO14443B = 41;
+  CARD_TYPE_ISO15693 = 42;
+  CARD_TYPE_FELICA = 43;
+}
+
+enum CardTechnology {
+  CARD_TECHNOLOGY_UNKNOWN = 0;
+  CARD_TECHNOLOGY_PROX_125KHZ = 1;      // 125 kHz proximity
+  CARD_TECHNOLOGY_CONTACTLESS_13_56MHZ = 2;  // 13.56 MHz contactless
+  CARD_TECHNOLOGY_NFC = 3;              // NFC-enabled
+  CARD_TECHNOLOGY_DUAL_FREQ = 4;        // Dual frequency
+}
+
+// HID Prox Card Data (125 kHz)
+message ProxCardData {
+  // Facility code
+  int32 facility_code = 1;
+
+  // Card number
+  int32 card_number = 2;
+
+  // Wiegand format (26-bit, 35-bit, etc.)
+  int32 wiegand_bits = 3;
+
+  // Raw Wiegand data
+  bytes wiegand_data = 4;
+
+  // Card format name
+  string format_name = 5;
+}
+
+// Mifare Classic Card Data
+message MifareCardData {
+  // Card size (1K, 4K)
+  int32 size_bytes = 1;
+
+  // Number of sectors
+  int32 num_sectors = 2;
+
+  // SAK (Select Acknowledge)
+  int32 sak = 3;
+
+  // ATQA (Answer to Request Type A)
+  int32 atqa = 4;
+
+  // Sectors data (if authenticated and read)
+  repeated MifareSector sectors = 5;
+}
+
+message MifareSector {
+  // Sector number
+  int32 sector_number = 1;
+
+  // Blocks in this sector (3 or 15)
+  repeated CardBlock blocks = 2;
+
+  // Access bits
+  bytes access_bits = 3;
+
+  // Keys used (A, B, or both)
+  repeated string keys_used = 4;
+}
+
+// iClass Card Data
+message IClassCardData {
+  // Application areas
+  repeated IClassApplication applications = 1;
+
+  // Card configuration
+  bytes config = 2;
+
+  // Credential data
+  bytes credential = 3;
+}
+
+message IClassApplication {
+  // Application ID
+  int32 app_id = 1;
+
+  // Application data
+  bytes data = 2;
+}
+
+// NTAG Card Data
+message NTAGCardData {
+  // NTAG type (213, 215, 216)
+  string ntag_type = 1;
+
+  // Total memory (bytes)
+  int32 total_memory = 2;
+
+  // User memory (bytes)
+  int32 user_memory = 3;
+
+  // Password protected
+  bool password_protected = 4;
+
+  // Counter value (if enabled)
+  int32 counter = 5;
+
+  // Signature (for authenticity verification)
+  bytes signature = 6;
+}
+
+// DESFire Card Data
+message DESFireCardData {
+  // Applications on the card
+  repeated DESFireApplication applications = 1;
+
+  // Card master key settings
+  bytes master_key_settings = 2;
+
+  // Free memory
+  int32 free_memory = 3;
+}
+
+message DESFireApplication {
+  // Application ID (AID)
+  int32 aid = 1;
+
+  // Application name
+  string name = 2;
+
+  // Files in application
+  repeated DESFireFile files = 3;
+}
+
+message DESFireFile {
+  // File ID
+  int32 file_id = 1;
+
+  // File type (standard, backup, value, record)
+  string file_type = 2;
+
+  // File size
+  int32 size = 3;
+
+  // File data (if read)
+  bytes data = 4;
+}
+
+// FeliCa Card Data (Sony)
+message FeliCaCardData {
+  // IDm (Manufacture ID)
+  bytes idm = 1;
+
+  // PMm (Manufacture Parameter)
+  bytes pmm = 2;
+
+  // System code
+  int32 system_code = 3;
+
+  // Services
+  repeated FeliCaService services = 4;
+}
+
+message FeliCaService {
+  // Service code
+  int32 service_code = 1;
+
+  // Service blocks
+  repeated CardBlock blocks = 2;
+}
+
+// Generic Card Block
+message CardBlock {
+  // Block number
+  int32 block_number = 1;
+
+  // Block data (typically 16 bytes)
+  bytes data = 2;
+
+  // Block access rights
+  string access = 3;
+}
+
+// NDEF (NFC Data Exchange Format) Record
+message NDEFRecord {
+  // Record type
+  NDEFRecordType type = 1;
+
+  // Record ID
+  string id = 2;
+
+  // Payload data
+  bytes payload = 3;
+
+  // Parsed content (for common types)
+  oneof content {
+    string text = 10;
+    string uri = 11;
+    string mime_type = 12;
+  }
+}
+
+enum NDEFRecordType {
+  NDEF_RECORD_TYPE_UNKNOWN = 0;
+  NDEF_RECORD_TYPE_TEXT = 1;
+  NDEF_RECORD_TYPE_URI = 2;
+  NDEF_RECORD_TYPE_SMART_POSTER = 3;
+  NDEF_RECORD_TYPE_MIME = 4;
+  NDEF_RECORD_TYPE_EXTERNAL = 5;
+}
+
+// Card Capabilities
+message CardCapabilities {
+  // Writable
+  bool writable = 1;
+
+  // Requires authentication
+  bool requires_auth = 2;
+
+  // Supports encryption
+  bool supports_encryption = 3;
+
+  // Supports NDEF
+  bool supports_ndef = 4;
+
+  // Maximum data size
+  int32 max_data_size = 5;
+
+  // Read-only
+  bool read_only = 6;
+}
+
+// ==================================================
+// Card Authentication
+// ==================================================
+
+message AuthenticateCardRequest {
+  // Device ID
+  string device_id = 1;
+
+  // Card UID to authenticate
+  bytes card_uid = 2;
+
+  // Authentication method
+  AuthenticationMethod method = 3;
+
+  // Credentials for authentication
+  AuthenticationCredentials credentials = 4;
+
+  // Optional: Challenge for challenge-response auth
+  bytes challenge = 5;
+}
+
+message AuthenticateCardResponse {
+  // Authentication result
+  bool authenticated = 1;
+
+  // Reason for failure (if not authenticated)
+  string reason = 2;
+
+  // User/credential info (if authenticated)
+  CredentialInfo credential_info = 3;
+
+  // Response data (for challenge-response)
+  bytes response = 4;
+
+  // Timestamp
+  google.protobuf.Timestamp timestamp = 5;
+}
+
+enum AuthenticationMethod {
+  AUTH_METHOD_UNKNOWN = 0;
+  AUTH_METHOD_UID_ONLY = 1;           // Just check UID
+  AUTH_METHOD_MIFARE_KEY = 2;         // Mifare key authentication
+  AUTH_METHOD_ICLASS_KEY = 3;         // iClass key authentication
+  AUTH_METHOD_CHALLENGE_RESPONSE = 4; // Challenge-response
+  AUTH_METHOD_CERTIFICATE = 5;        // Certificate-based
+  AUTH_METHOD_DATABASE = 6;           // Check against database
+}
+
+message AuthenticationCredentials {
+  // Mifare keys
+  repeated bytes mifare_keys_a = 1;
+  repeated bytes mifare_keys_b = 2;
+
+  // iClass keys
+  bytes iclass_key = 3;
+
+  // Certificate
+  bytes certificate = 4;
+
+  // Database credentials
+  DatabaseCredentials database = 5;
+}
+
+message DatabaseCredentials {
+  // Database connection string
+  string connection_string = 1;
+
+  // Query to check card
+  string query = 2;
+
+  // Additional parameters
+  map<string, string> parameters = 3;
+}
+
+message CredentialInfo {
+  // User ID
+  string user_id = 1;
+
+  // User name
+  string user_name = 2;
+
+  // Access level
+  string access_level = 3;
+
+  // Valid from
+  google.protobuf.Timestamp valid_from = 4;
+
+  // Valid until
+  google.protobuf.Timestamp valid_until = 5;
+
+  // Additional attributes
+  map<string, string> attributes = 6;
+}
+
+// ==================================================
+// Write Card
+// ==================================================
+
+message WriteCardRequest {
+  // Device ID
+  string device_id = 1;
+
+  // Card UID to write to (or empty for next presented card)
+  bytes card_uid = 2;
+
+  // Data to write
+  repeated CardBlock blocks = 3;
+
+  // NDEF records to write (for NFC tags)
+  repeated NDEFRecord ndef_records = 4;
+
+  // Authentication credentials (if needed)
+  AuthenticationCredentials credentials = 5;
+
+  // Write options
+  WriteOptions options = 6;
+}
+
+message WriteCardResponse {
+  // Success
+  bool success = 1;
+
+  // Blocks written
+  int32 blocks_written = 2;
+
+  // Error message (if failed)
+  string error = 3;
+
+  // Timestamp
+  google.protobuf.Timestamp timestamp = 4;
+}
+
+message WriteOptions {
+  // Lock blocks after writing (permanent)
+  bool lock_blocks = 1;
+
+  // Verify after writing
+  bool verify = 2;
+
+  // Timeout
+  int32 timeout_seconds = 3;
+
+  // Beep on success
+  bool beep_on_success = 4;
+}
+
+// ==================================================
+// Reader Status
+// ==================================================
+
+message GetReaderStatusRequest {
+  // Device ID
+  string device_id = 1;
+}
+
+message ReaderStatus {
+  // Device ID
+  string device_id = 1;
+
+  // Current status
+  DeviceStatus status = 2;
+
+  // Reader mode
+  ReaderMode mode = 3;
+
+  // Supported card types
+  repeated CardType supported_types = 4;
+
+  // Supported protocols
+  repeated string supported_protocols = 5;
+
+  // Reader capabilities
+  ReaderCapabilities capabilities = 6;
+
+  // Current card present
+  bool card_present = 7;
+
+  // Current card UID (if present)
+  bytes current_card_uid = 8;
+
+  // Reader model/manufacturer
+  string model = 9;
+  string manufacturer = 10;
+
+  // Firmware version
+  string firmware_version = 11;
+
+  // Serial number
+  string serial_number = 12;
+
+  // Connection type
+  string connection_type = 13;
+
+  // Last read timestamp
+  google.protobuf.Timestamp last_read = 14;
+
+  // Statistics
+  ReaderStatistics statistics = 15;
+}
+
+enum ReaderMode {
+  READER_MODE_UNKNOWN = 0;
+  READER_MODE_IDLE = 1;           // Waiting for card
+  READER_MODE_CONTINUOUS = 2;     // Continuous reading
+  READER_MODE_SINGLE_READ = 3;    // Read once then stop
+  READER_MODE_WRITE = 4;          // Write mode
+  READER_MODE_EMULATION = 5;      // Card emulation mode
+}
+
+message ReaderCapabilities {
+  // Supports read
+  bool can_read = 1;
+
+  // Supports write
+  bool can_write = 2;
+
+  // Supports authentication
+  bool can_authenticate = 3;
+
+  // Has buzzer
+  bool has_buzzer = 4;
+
+  // Has LED
+  bool has_led = 5;
+
+  // Supports NDEF
+  bool supports_ndef = 6;
+
+  // Supports card emulation
+  bool supports_emulation = 7;
+
+  // Read distance (cm)
+  int32 read_distance_cm = 8;
+
+  // Maximum read rate (cards/sec)
+  int32 max_read_rate = 9;
+}
+
+message ReaderStatistics {
+  // Total reads
+  int64 total_reads = 1;
+
+  // Successful reads
+  int64 successful_reads = 2;
+
+  // Failed reads
+  int64 failed_reads = 3;
+
+  // Total writes
+  int64 total_writes = 4;
+
+  // Successful authentications
+  int64 successful_auths = 5;
+
+  // Failed authentications
+  int64 failed_auths = 6;
+
+  // Uptime
+  google.protobuf.Timestamp started_at = 7;
+
+  // Average read time (ms)
+  int32 avg_read_time_ms = 8;
+}
+
+// ==================================================
+// Events
+// ==================================================
+
+message SubscribeCardReadsRequest {
+  // Device ID (or empty for all readers)
+  string device_id = 1;
+
+  // Filter by card types
+  repeated CardType filter_types = 2;
+}
+
+message CardReadEvent {
+  // Event ID
+  string event_id = 1;
+
+  // Device that read the card
+  string device_id = 2;
+
+  // Card data
+  CardData card = 3;
+
+  // Event timestamp
+  google.protobuf.Timestamp timestamp = 4;
+
+  // Signal strength
+  int32 signal_strength = 5;
+
+  // Read time (ms)
+  int32 read_time_ms = 6;
+}
+
+message SubscribeReaderEventsRequest {
+  // Device ID (or empty for all readers)
+  string device_id = 1;
+
+  // Event types to subscribe to
+  repeated ReaderEventType event_types = 2;
+}
+
+message ReaderEvent {
+  // Event ID
+  string event_id = 1;
+
+  // Device ID
+  string device_id = 2;
+
+  // Event type
+  ReaderEventType type = 3;
+
+  // Event timestamp
+  google.protobuf.Timestamp timestamp = 4;
+
+  // Event data
+  oneof data {
+    CardReadEvent card_read = 10;
+    ReaderErrorEvent error = 11;
+    CardPresentEvent card_present = 12;
+    CardRemovedEvent card_removed = 13;
+    ReaderModeChangedEvent mode_changed = 14;
+  }
+}
+
+enum ReaderEventType {
+  READER_EVENT_TYPE_UNKNOWN = 0;
+  READER_EVENT_TYPE_CARD_READ = 1;
+  READER_EVENT_TYPE_CARD_PRESENT = 2;
+  READER_EVENT_TYPE_CARD_REMOVED = 3;
+  READER_EVENT_TYPE_READER_CONNECTED = 4;
+  READER_EVENT_TYPE_READER_DISCONNECTED = 5;
+  READER_EVENT_TYPE_READER_ERROR = 6;
+  READER_EVENT_TYPE_MODE_CHANGED = 7;
+  READER_EVENT_TYPE_AUTH_SUCCESS = 8;
+  READER_EVENT_TYPE_AUTH_FAILURE = 9;
+}
+
+message ReaderErrorEvent {
+  // Error code
+  string error_code = 1;
+
+  // Error message
+  string message = 2;
+
+  // Severity
+  ErrorSeverity severity = 3;
+}
+
+enum ErrorSeverity {
+  ERROR_SEVERITY_UNKNOWN = 0;
+  ERROR_SEVERITY_INFO = 1;
+  ERROR_SEVERITY_WARNING = 2;
+  ERROR_SEVERITY_ERROR = 3;
+  ERROR_SEVERITY_CRITICAL = 4;
+}
+
+message CardPresentEvent {
+  // Card UID detected
+  bytes card_uid = 1;
+
+  // Card type (if identified)
+  CardType card_type = 2;
+}
+
+message CardRemovedEvent {
+  // Card UID that was removed
+  bytes card_uid = 1;
+
+  // Duration card was present (ms)
+  int32 duration_ms = 2;
+}
+
+message ReaderModeChangedEvent {
+  // Old mode
+  ReaderMode old_mode = 1;
+
+  // New mode
+  ReaderMode new_mode = 2;
+}
+
+// ==================================================
+// Reader Mode Control
+// ==================================================
+
+message SetReaderModeRequest {
+  // Device ID
+  string device_id = 1;
+
+  // Mode to set
+  ReaderMode mode = 2;
+
+  // Mode options
+  ReaderModeOptions options = 3;
+}
+
+message SetReaderModeResponse {
+  // Success
+  bool success = 1;
+
+  // Current mode
+  ReaderMode current_mode = 2;
+}
+
+message ReaderModeOptions {
+  // Beep on card detection
+  bool beep_on_detect = 1;
+
+  // LED flash on card detection
+  bool flash_on_detect = 2;
+
+  // Auto-read when card detected
+  bool auto_read = 3;
+
+  // Continuous read interval (ms)
+  int32 read_interval_ms = 4;
+
+  // Filter card types
+  repeated CardType filter_types = 5;
+}
+
+// ==================================================
+// Supported Card Types Query
+// ==================================================
+
+message GetSupportedCardTypesRequest {
+  // Device ID
+  string device_id = 1;
+}
+
+message GetSupportedCardTypesResponse {
+  // Supported card types
+  repeated CardTypeInfo card_types = 1;
+
+  // Supported protocols
+  repeated string protocols = 2;
+}
+
+message CardTypeInfo {
+  // Card type
+  CardType type = 1;
+
+  // Type name
+  string name = 2;
+
+  // Technology
+  CardTechnology technology = 3;
+
+  // Description
+  string description = 4;
+
+  // Capabilities
+  CardCapabilities capabilities = 5;
+}

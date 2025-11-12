@@ -1,0 +1,610 @@
+# Access Control Configuration Examples
+# Complete event and facility access control integration
+
+server:
+  grpc_port: 50051
+  http_port: 8080
+  metrics_port: 9090
+  host: "0.0.0.0"
+
+devices:
+  # Example 1: Single Door Controller (TCP/IP Network Panel)
+  - id: "access-controller-entrance-01"
+    name: "Main Entrance Access Controller"
+    kind: "access_control.network_panel"
+    enabled: true
+    transport: "tcp"
+    address: "192.168.1.100"
+    port: 5000
+
+    metadata:
+      model: "Mercury LP-1501"
+      manufacturer: "Mercury Security"
+      location: "Main Building Entrance"
+
+    settings:
+      controller_type: "single_door"
+
+      # Doors managed by this controller
+      doors:
+        - id: "main-entrance"
+          name: "Main Entrance Door"
+          lock_type: "electric_strike"
+          lock_output: 1
+          door_sensor_input: 1
+          rex_button_input: 2
+          tamper_input: 3
+          mode: "normal"
+          zone: "lobby"
+
+      # Default unlock duration (seconds)
+      default_unlock_duration: 5
+
+      # Door held open threshold (seconds before alarm)
+      door_held_open_threshold: 30
+
+      # Request to exit unlock duration
+      rex_unlock_duration: 5
+
+      # Access control features
+      enable_anti_passback: false
+      enable_two_person_rule: false
+      require_pin_with_card: false
+      max_failed_attempts: 3
+      lockout_duration: 60
+
+    tags:
+      - "main-entrance"
+      - "public-access"
+
+  # Example 2: Multi-Door Network Access Panel
+  - id: "access-controller-office-01"
+    name: "Office Wing Access Panel"
+    kind: "access_control.network_panel"
+    enabled: true
+    transport: "tcp"
+    address: "192.168.1.101"
+    port: 5000
+
+    metadata:
+      model: "HID VertX V100"
+      manufacturer: "HID Global"
+      location: "Office Wing"
+
+    settings:
+      controller_type: "multi_door"
+
+      doors:
+        - id: "office-door-1"
+          name: "Office Entry"
+          lock_type: "magnetic_lock"
+          lock_output: 1
+          door_sensor_input: 1
+          rex_button_input: 2
+          mode: "office_mode"  # Unlocked during business hours
+          schedule_id: "business_hours"
+          zone: "office_area"
+
+        - id: "office-door-2"
+          name: "Conference Room"
+          lock_type: "electric_strike"
+          lock_output: 2
+          door_sensor_input: 3
+          rex_button_input: 4
+          mode: "normal"
+          zone: "conference"
+
+      default_unlock_duration: 7
+      door_held_open_threshold: 45
+      rex_unlock_duration: 7
+
+      enable_anti_passback: true  # Prevent tailgating
+      enable_two_person_rule: false
+      require_pin_with_card: false
+
+    tags:
+      - "office"
+      - "business-hours"
+
+  # Example 3: High-Security Area (RS-485 Serial Controller)
+  - id: "access-controller-secure-01"
+    name: "Secure Server Room Controller"
+    kind: "access_control.rs485"
+    enabled: true
+    transport: "rs485"
+    serial_dev: "/dev/ttyUSB0"
+    baud_rate: 9600
+    rs485_address: 1
+
+    metadata:
+      model: "Kantech KT-1"
+      manufacturer: "Kantech"
+      location: "Server Room"
+
+    settings:
+      controller_type: "single_door"
+
+      doors:
+        - id: "server-room-door"
+          name: "Server Room Entrance"
+          lock_type: "motorized_lock"
+          lock_output: 1
+          door_sensor_input: 1
+          rex_button_input: 2
+          tamper_input: 3
+          mode: "locked"  # Always locked, requires authorization
+          zone: "secure_zone"
+
+      default_unlock_duration: 3  # Short duration for high security
+      door_held_open_threshold: 15  # Quick alarm for security
+      rex_unlock_duration: 3
+
+      enable_anti_passback: true
+      enable_two_person_rule: true  # Requires two people for access
+      require_pin_with_card: true    # Multi-factor authentication
+      max_failed_attempts: 2
+      lockout_duration: 300  # 5 minutes lockout
+
+    tags:
+      - "high-security"
+      - "server-room"
+      - "two-person-rule"
+
+  # Example 4: Event Conference Access (Integration with RFID)
+  - id: "access-controller-conference-01"
+    name: "Conference Hall Access"
+    kind: "access_control.event"
+    enabled: true
+    transport: "tcp"
+    address: "192.168.1.102"
+    port: 5000
+
+    metadata:
+      model: "Salto XS4"
+      manufacturer: "Salto Systems"
+      location: "Conference Hall A"
+      event: "Tech Conference 2025"
+
+    settings:
+      controller_type: "single_door"
+
+      doors:
+        - id: "conference-hall-a"
+          name: "Conference Hall A Main Entrance"
+          lock_type: "electric_strike"
+          lock_output: 1
+          door_sensor_input: 1
+          rex_button_input: 2
+          mode: "normal"
+          zone: "conference_hall_a"
+
+      default_unlock_duration: 5
+      door_held_open_threshold: 60  # Longer for event attendees
+      rex_unlock_duration: 5
+
+      enable_anti_passback: false  # Disabled for events
+      enable_two_person_rule: false
+      require_pin_with_card: false
+      max_failed_attempts: 5
+      lockout_duration: 30
+
+    tags:
+      - "conference"
+      - "event"
+      - "temporary"
+
+  # Example 5: Wiegand Output Controller (Legacy Integration)
+  - id: "access-controller-wiegand-01"
+    name: "Legacy System Bridge"
+    kind: "access_control.wiegand"
+    enabled: true
+    transport: "wiegand"
+
+    metadata:
+      model: "Generic Wiegand Bridge"
+      manufacturer: "Generic"
+      location: "Building B"
+
+    settings:
+      controller_type: "single_door"
+
+      # Wiegand GPIO pins
+      wiegand_gpio_data0: 17
+      wiegand_gpio_data1: 27
+      wiegand_bits: 26  # 26-bit Wiegand format
+
+      doors:
+        - id: "building-b-entrance"
+          name: "Building B Entrance"
+          lock_type: "relay"
+          lock_output: 1
+          mode: "normal"
+          zone: "building_b"
+
+      default_unlock_duration: 5
+
+    tags:
+      - "wiegand"
+      - "legacy"
+
+  # Example 6: Visitor Management System
+  - id: "access-controller-visitor-01"
+    name: "Visitor Reception Access"
+    kind: "access_control.visitor"
+    enabled: true
+    transport: "tcp"
+    address: "192.168.1.103"
+    port: 5000
+
+    metadata:
+      model: "Honeywell Pro-Watch"
+      manufacturer: "Honeywell"
+      location: "Reception"
+
+    settings:
+      controller_type: "multi_door"
+
+      doors:
+        - id: "visitor-entrance"
+          name: "Visitor Entrance"
+          lock_type: "electric_strike"
+          lock_output: 1
+          door_sensor_input: 1
+          rex_button_input: 2
+          mode: "normal"
+          zone: "visitor_area"
+
+        - id: "visitor-exit"
+          name: "Visitor Exit"
+          lock_type: "electric_strike"
+          lock_output: 2
+          door_sensor_input: 3
+          rex_button_input: 4
+          mode: "unlocked"  # Exit always open
+          zone: "lobby"
+
+      default_unlock_duration: 8  # Longer for visitors
+      door_held_open_threshold: 45
+      rex_unlock_duration: 5
+
+      enable_anti_passback: true  # Track visitor location
+      enable_two_person_rule: false
+      require_pin_with_card: false
+
+    tags:
+      - "visitor"
+      - "reception"
+
+  # Example 7: Emergency Lockdown Controller
+  - id: "access-controller-emergency-01"
+    name: "Emergency Lockdown Master Controller"
+    kind: "access_control.emergency"
+    enabled: true
+    transport: "tcp"
+    address: "192.168.1.104"
+    port: 5000
+
+    metadata:
+      model: "Axis A1601"
+      manufacturer: "Axis Communications"
+      location: "Security Control Room"
+
+    settings:
+      controller_type: "multi_door"
+
+      doors:
+        - id: "emergency-exit-1"
+          name: "Emergency Exit 1"
+          lock_type: "magnetic_lock"  # Fail-safe for fire
+          lock_output: 1
+          door_sensor_input: 1
+          mode: "normal"
+          zone: "building_east"
+
+        - id: "emergency-exit-2"
+          name: "Emergency Exit 2"
+          lock_type: "magnetic_lock"
+          lock_output: 2
+          door_sensor_input: 2
+          mode: "normal"
+          zone: "building_west"
+
+        - id: "emergency-exit-3"
+          name: "Emergency Exit 3"
+          lock_type: "magnetic_lock"
+          lock_output: 3
+          door_sensor_input: 3
+          mode: "normal"
+          zone: "building_north"
+
+      default_unlock_duration: 5
+      door_held_open_threshold: 20
+      rex_unlock_duration: 5
+
+      # Emergency features
+      enable_anti_passback: false
+      enable_two_person_rule: false
+
+    tags:
+      - "emergency"
+      - "fire-safety"
+      - "lockdown"
+
+  # Example 8: Elevator Access Control
+  - id: "access-controller-elevator-01"
+    name: "Executive Floor Elevator Control"
+    kind: "access_control.elevator"
+    enabled: true
+    transport: "tcp"
+    address: "192.168.1.105"
+    port: 5000
+
+    metadata:
+      model: "Schlage Control Elevator"
+      manufacturer: "Schlage"
+      location: "Executive Elevator"
+
+    settings:
+      controller_type: "elevator_control"
+
+      # Elevator floor access control
+      doors:
+        - id: "floor-executive"
+          name: "Executive Floor Access"
+          lock_type: "relay"
+          lock_output: 1
+          mode: "locked"  # Requires executive access
+          zone: "executive_floor"
+
+      default_unlock_duration: 10  # Time to enter elevator
+      enable_anti_passback: false
+      require_pin_with_card: false
+
+    tags:
+      - "elevator"
+      - "executive"
+
+  # Example 9: Parking Garage Access
+  - id: "access-controller-parking-01"
+    name: "Parking Garage Gate Controller"
+    kind: "access_control.parking"
+    enabled: true
+    transport: "tcp"
+    address: "192.168.1.106"
+    port: 5000
+
+    metadata:
+      model: "BFT Moovi"
+      manufacturer: "BFT"
+      location: "Parking Garage Entrance"
+
+    settings:
+      controller_type: "single_door"
+
+      doors:
+        - id: "parking-gate-entrance"
+          name: "Parking Entrance Gate"
+          lock_type: "relay"  # Controls barrier gate
+          lock_output: 1
+          door_sensor_input: 1  # Gate position sensor
+          mode: "normal"
+          zone: "parking"
+
+      default_unlock_duration: 15  # Time for vehicle to pass
+      door_held_open_threshold: 30  # Gate malfunction alarm
+      rex_unlock_duration: 10  # Exit button
+
+      enable_anti_passback: true  # Prevent multiple entries
+      enable_two_person_rule: false
+
+    tags:
+      - "parking"
+      - "vehicle-access"
+
+  # Example 10: Integrated System (RFID Reader + Access Controller)
+  - id: "access-controller-integrated-01"
+    name: "VIP Lounge Integrated Access"
+    kind: "access_control.integrated"
+    enabled: true
+    transport: "tcp"
+    address: "192.168.1.107"
+    port: 5000
+
+    metadata:
+      model: "Genetec Synergis"
+      manufacturer: "Genetec"
+      location: "VIP Lounge"
+      integrated_rfid_reader: "rfid-reader-network-01"  # Reference to RFID reader
+
+    settings:
+      controller_type: "single_door"
+
+      doors:
+        - id: "vip-lounge-entrance"
+          name: "VIP Lounge Entrance"
+          lock_type: "electric_strike"
+          lock_output: 1
+          door_sensor_input: 1
+          rex_button_input: 2
+          mode: "normal"
+          zone: "vip_lounge"
+
+      default_unlock_duration: 5
+      door_held_open_threshold: 30
+      rex_unlock_duration: 5
+
+      enable_anti_passback: false
+      enable_two_person_rule: false
+      require_pin_with_card: false
+
+    tags:
+      - "vip"
+      - "integrated"
+      - "high-traffic"
+
+# Access Control Rules (centralized)
+access_rules:
+  - rule_id: "employees_all_doors"
+    name: "Employees - All Doors"
+    description: "Grant employees access to all non-secure doors"
+    priority: 10
+    enabled: true
+    conditions:
+      user_types:
+        - "employee"
+      access_levels:
+        - "standard"
+        - "supervisor"
+      door_ids:
+        - "main-entrance"
+        - "office-door-1"
+        - "office-door-2"
+        - "visitor-entrance"
+    action:
+      decision: "granted"
+      unlock_duration_seconds: 5
+      log_severity: "info"
+
+  - rule_id: "vip_all_access"
+    name: "VIP - All Access"
+    description: "Grant VIP users access to all areas"
+    priority: 100
+    enabled: true
+    conditions:
+      user_types:
+        - "vip"
+        - "admin"
+      door_ids:
+        - "*"  # All doors
+    action:
+      decision: "granted"
+      unlock_duration_seconds: 7
+      log_severity: "info"
+
+  - rule_id: "visitors_reception_only"
+    name: "Visitors - Reception Only"
+    description: "Limit visitors to reception area"
+    priority: 50
+    enabled: true
+    conditions:
+      user_types:
+        - "visitor"
+      door_ids:
+        - "visitor-entrance"
+        - "visitor-exit"
+    action:
+      decision: "granted"
+      unlock_duration_seconds: 10
+      log_severity: "info"
+
+  - rule_id: "after_hours_security_only"
+    name: "After Hours - Security Only"
+    description: "After business hours, only security can access"
+    priority: 80
+    enabled: true
+    conditions:
+      user_types:
+        - "security"
+      door_ids:
+        - "*"
+      # Schedule would be defined separately
+    action:
+      decision: "granted"
+      unlock_duration_seconds: 5
+      send_notification: true
+      notification_recipients:
+        - "security@company.com"
+      log_severity: "warning"
+
+  - rule_id: "deny_blacklist"
+    name: "Deny Blacklisted Users"
+    description: "Deny access to blacklisted users"
+    priority: 999  # Highest priority
+    enabled: true
+    conditions:
+      access_levels:
+        - "blacklisted"
+      door_ids:
+        - "*"
+    action:
+      decision: "denied"
+      send_notification: true
+      notification_recipients:
+        - "security@company.com"
+      log_severity: "critical"
+
+# Schedules
+schedules:
+  - schedule_id: "business_hours"
+    name: "Business Hours"
+    periods:
+      - days_of_week: [1, 2, 3, 4, 5]  # Monday-Friday
+        start_time: "08:00"
+        end_time: "18:00"
+
+  - schedule_id: "weekend_access"
+    name: "Weekend Access"
+    periods:
+      - days_of_week: [0, 6]  # Sunday, Saturday
+        start_time: "10:00"
+        end_time: "14:00"
+
+  - schedule_id: "24_7"
+    name: "24/7 Access"
+    periods:
+      - days_of_week: [0, 1, 2, 3, 4, 5, 6]  # Every day
+        start_time: "00:00"
+        end_time: "23:59"
+
+# Logging configuration
+logging:
+  level: "info"
+  format: "json"
+
+  # Audit trail settings
+  audit:
+    enabled: true
+    log_all_events: true
+    retention_days: 90
+
+# Telemetry configuration
+telemetry:
+  metrics:
+    enabled: true
+  tracing:
+    enabled: false
+
+# Security configuration
+security:
+  api_auth:
+    enabled: true
+    api_keys:
+      - "your-api-key-here"
+  tls:
+    enabled: true
+    cert_file: "/path/to/cert.pem"
+    key_file: "/path/to/key.pem"
+
+  # Event notifications
+  notifications:
+    enabled: true
+    email:
+      smtp_server: "smtp.company.com"
+      from_address: "access-control@company.com"
+      to_addresses:
+        - "security@company.com"
+
+    # Notification triggers
+    triggers:
+      - event_type: "DOOR_FORCED"
+        severity: "critical"
+        notify: true
+      - event_type: "LOCKDOWN_ACTIVATED"
+        severity: "emergency"
+        notify: true
+      - event_type: "ACCESS_DENIED"
+        severity: "warning"
+        notify: false  # Too frequent
+      - event_type: "TAMPER_DETECTED"
+        severity: "critical"
+        notify: true

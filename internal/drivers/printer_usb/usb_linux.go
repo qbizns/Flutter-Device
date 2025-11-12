@@ -3,6 +3,7 @@
 package printer_usb
 
 import (
+	"context"
 	"fmt"
 	"sync"
 	"time"
@@ -74,11 +75,11 @@ func findUSBPrinter(config Config) (USBDevice, error) {
 	}
 
 	// Get device info
-	desc, err := device.Desc()
-	if err != nil {
+	desc := device.Desc
+	if desc == nil {
 		device.Close()
 		ctx.Close()
-		return nil, fmt.Errorf("failed to get device descriptor: %w", err)
+		return nil, fmt.Errorf("failed to get device descriptor: device.Desc is nil")
 	}
 
 	vendorID := uint16(desc.Vendor)
@@ -203,8 +204,11 @@ func (d *linuxUSBDevice) Write(data []byte) (int, error) {
 	}
 	d.mu.Unlock()
 
-	// Write with timeout
-	n, err := d.outEp.WriteTimeout(data, d.timeout)
+	// Write with timeout using context
+	ctx, cancel := context.WithTimeout(context.Background(), d.timeout)
+	defer cancel()
+
+	n, err := d.outEp.WriteContext(ctx, data)
 	if err != nil {
 		return 0, fmt.Errorf("USB write error: %w", err)
 	}
@@ -225,8 +229,11 @@ func (d *linuxUSBDevice) Read(buffer []byte) (int, error) {
 	}
 	d.mu.Unlock()
 
-	// Read with timeout
-	n, err := d.inEp.ReadTimeout(buffer, d.timeout)
+	// Read with timeout using context
+	ctx, cancel := context.WithTimeout(context.Background(), d.timeout)
+	defer cancel()
+
+	n, err := d.inEp.ReadContext(ctx, buffer)
 	if err != nil {
 		return 0, fmt.Errorf("USB read error: %w", err)
 	}
@@ -318,8 +325,8 @@ func EnumeratePrinters() ([]PrinterInfo, error) {
 	}
 
 	for _, dev := range devs {
-		desc, err := dev.Desc()
-		if err != nil {
+		desc := dev.Desc
+		if desc == nil {
 			dev.Close()
 			continue
 		}
@@ -329,21 +336,15 @@ func EnumeratePrinters() ([]PrinterInfo, error) {
 		product, _ := dev.Product()
 		serial, _ := dev.SerialNumber()
 
-		// Get bus and address
-		busNum, devAddr, err := dev.BusNumber()
-		if err != nil {
-			dev.Close()
-			continue
-		}
-
+		// Note: Bus and address info not available in current gousb API
 		info := PrinterInfo{
 			VendorID:   uint16(desc.Vendor),
 			ProductID:  uint16(desc.Product),
 			Vendor:     vendor,
 			Product:    product,
 			Serial:     serial,
-			BusNumber:  busNum,
-			DeviceAddr: devAddr,
+			BusNumber:  0,
+			DeviceAddr: 0,
 		}
 
 		printers = append(printers, info)

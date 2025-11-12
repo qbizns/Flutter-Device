@@ -1,0 +1,232 @@
+# Badge Printer Configuration Examples
+# Zebra Card/Badge Printers (ZC100, ZC300, ZC350, ZXP Series)
+
+server:
+  grpc_port: 50051
+  http_port: 8080
+  metrics_port: 9090
+  host: "0.0.0.0"
+
+devices:
+  # Example 1: USB Badge Printer (Basic Conference Badges)
+  - id: "badge-printer-usb-01"
+    name: "Registration Desk Badge Printer"
+    kind: "badge_printer.zebra"
+    enabled: true
+    transport: "usb"
+    vendor_id: 0x0a5f    # Zebra Technologies
+    product_id: 0x0176   # ZC300
+
+    metadata:
+      model: "ZC300"
+      location: "Registration Desk"
+
+    settings:
+      # Printer capabilities
+      dual_sided: true
+      magnetic_stripe: false
+      rfid: false
+      lamination: false
+
+      # Print settings
+      dpi: 300             # 300 or 600
+      print_speed: "normal"  # "fast", "normal", "quality"
+
+      # Timeouts
+      connect_timeout: "30s"
+      print_timeout: "60s"
+      encode_timeout: "30s"
+
+    tags:
+      - "registration"
+      - "attendee-badges"
+      - "main-desk"
+
+  # Example 2: Network Badge Printer (VIP Badges with RFID)
+  - id: "badge-printer-vip-01"
+    name: "VIP Lounge Badge Printer"
+    kind: "badge_printer.zebra"
+    enabled: true
+    transport: "tcp"
+    address: "192.168.1.100"
+    port: 9100
+
+    metadata:
+      model: "ZC350"
+      location: "VIP Lounge"
+
+    settings:
+      dual_sided: true
+      magnetic_stripe: false
+      rfid: true
+      rfid_types:
+        - "mifare_1k"
+        - "iclass"
+      lamination: true
+
+      dpi: 600  # High quality for VIP badges
+      print_speed: "quality"
+
+      connect_timeout: "30s"
+      print_timeout: "90s"
+      encode_timeout: "45s"
+
+    tags:
+      - "vip"
+      - "special-access"
+      - "rfid-enabled"
+
+  # Example 3: Staff Badge Printer (with Magnetic Stripe)
+  - id: "badge-printer-staff-01"
+    name: "HR Department Badge Printer"
+    kind: "badge_printer.zebra"
+    enabled: true
+    transport: "usb"
+    vendor_id: 0x0a5f
+    product_id: 0x0177   # ZC350
+
+    metadata:
+      model: "ZC350"
+      location: "HR Department"
+      department: "Human Resources"
+
+    settings:
+      dual_sided: true
+      magnetic_stripe: true
+      rfid: true
+      rfid_types:
+        - "mifare_1k"
+        - "hid_iclass"
+      lamination: true
+
+      dpi: 600
+      print_speed: "quality"
+
+      connect_timeout: "30s"
+      print_timeout: "120s"  # Longer for dual-sided + mag stripe + RFID
+      encode_timeout: "60s"
+
+    tags:
+      - "staff"
+      - "employee-badges"
+      - "magnetic-stripe"
+      - "rfid-enabled"
+
+  # Example 4: High-Volume Event Badge Printer
+  - id: "badge-printer-event-01"
+    name: "Conference Registration 1"
+    kind: "badge_printer.zebra"
+    enabled: true
+    transport: "tcp"
+    address: "192.168.1.101"
+    port: 9100
+
+    metadata:
+      model: "ZC350"
+      location: "Main Registration"
+      event: "Tech Conference 2025"
+
+    settings:
+      dual_sided: false  # Single-sided for speed
+      magnetic_stripe: false
+      rfid: false
+      lamination: false
+
+      dpi: 300           # Lower DPI for speed
+      print_speed: "fast"
+
+      connect_timeout: "20s"
+      print_timeout: "30s"
+      encode_timeout: "0s"  # No encoding
+
+    tags:
+      - "event"
+      - "high-volume"
+      - "fast-printing"
+
+  # Example 5: Visitor Management Badge Printer
+  - id: "badge-printer-visitor-01"
+    name: "Reception Visitor Badge Printer"
+    kind: "badge_printer.zebra"
+    enabled: true
+    transport: "usb"
+    vendor_id: 0x0a5f
+    product_id: 0x0165   # ZC100 (entry-level)
+
+    metadata:
+      model: "ZC100"
+      location: "Main Reception"
+
+    settings:
+      dual_sided: false  # ZC100 is single-sided
+      magnetic_stripe: false
+      rfid: false
+      lamination: false
+
+      dpi: 300
+      print_speed: "normal"
+
+      connect_timeout: "30s"
+      print_timeout: "45s"
+      encode_timeout: "0s"
+
+    tags:
+      - "visitor"
+      - "temporary-badges"
+      - "reception"
+
+  # Example 6: Backup Network Printer
+  - id: "badge-printer-backup-01"
+    name: "Backup Badge Printer"
+    kind: "badge_printer.zebra"
+    enabled: false  # Disabled until needed
+    transport: "tcp"
+    address: "192.168.1.102"
+    port: 9100
+
+    metadata:
+      model: "ZC300"
+      location: "IT Room"
+      role: "backup"
+
+    settings:
+      dual_sided: true
+      magnetic_stripe: false
+      rfid: true
+      rfid_types:
+        - "mifare_1k"
+      lamination: false
+
+      dpi: 300
+      print_speed: "normal"
+
+      connect_timeout: "30s"
+      print_timeout: "60s"
+      encode_timeout: "30s"
+
+    tags:
+      - "backup"
+      - "standby"
+
+# Logging configuration
+logging:
+  level: "info"  # debug, info, warn, error
+  format: "json"  # json or text
+
+# Telemetry configuration
+telemetry:
+  metrics:
+    enabled: true
+  tracing:
+    enabled: false
+
+# Security configuration
+security:
+  api_auth:
+    enabled: true
+    api_keys:
+      - "your-api-key-here"
+  tls:
+    enabled: false
+  acl:
+    enabled: false

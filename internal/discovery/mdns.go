@@ -142,11 +142,11 @@ func (s *MDNSScanner) scanService(ctx context.Context, service string) ([]Discov
 			// Get primary address
 			var address string
 			var port int
-			if len(entry.AddrV4) > 0 {
-				address = entry.AddrV4[0].String()
+			if entry.AddrV4 != nil && len(entry.AddrV4) > 0 {
+				address = entry.AddrV4.String()
 				port = entry.Port
-			} else if len(entry.AddrV6) > 0 {
-				address = entry.AddrV6[0].String()
+			} else if entry.AddrV6 != nil && len(entry.AddrV6) > 0 {
+				address = entry.AddrV6.String()
 				port = entry.Port
 			} else {
 				// No IP address
@@ -169,7 +169,10 @@ func (s *MDNSScanner) scanService(ctx context.Context, service string) ([]Discov
 			}
 
 			// Add TXT record info
-			for _, txt := range entry.Info {
+			if entry.Info != "" {
+				device.Metadata["txt_info"] = entry.Info
+			}
+			for _, txt := range entry.InfoFields {
 				device.Metadata["txt_"+txt] = "true"
 			}
 

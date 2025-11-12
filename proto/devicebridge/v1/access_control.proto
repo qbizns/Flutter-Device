@@ -1,0 +1,1016 @@
+// Copyright 2025 Device Bridge
+// Access Control Service - Protocol Buffer Definition
+// Version: 1.0.0
+
+syntax = "proto3";
+
+package devicebridge.v1;
+
+option go_package = "github.com/Macber-eg/Flutter-Device/proto/devicebridge/v1";
+
+import "google/protobuf/timestamp.proto";
+import "proto/devicebridge/v1/common.proto";
+
+// AccessControl service provides comprehensive access control management
+// for event security, building access, and visitor management
+service AccessControl {
+  // UnlockDoor unlocks a door for specified duration
+  rpc UnlockDoor(UnlockDoorRequest) returns (UnlockDoorResponse);
+
+  // LockDoor locks a door immediately
+  rpc LockDoor(LockDoorRequest) returns (LockDoorResponse);
+
+  // GetDoorStatus returns current door status
+  rpc GetDoorStatus(GetDoorStatusRequest) returns (DoorStatus);
+
+  // CheckAccess checks if access should be granted for a credential
+  rpc CheckAccess(CheckAccessRequest) returns (CheckAccessResponse);
+
+  // GrantAccess grants access and unlocks door
+  rpc GrantAccess(GrantAccessRequest) returns (GrantAccessResponse);
+
+  // SubscribeAccessEvents subscribes to access events (entry, denial, alarms)
+  rpc SubscribeAccessEvents(SubscribeAccessEventsRequest) returns (stream AccessEvent);
+
+  // SetDoorMode sets the door operating mode
+  rpc SetDoorMode(SetDoorModeRequest) returns (SetDoorModeResponse);
+
+  // ActivateLockdown activates emergency lockdown
+  rpc ActivateLockdown(ActivateLockdownRequest) returns (ActivateLockdownResponse);
+
+  // DeactivateLockdown deactivates emergency lockdown
+  rpc DeactivateLockdown(DeactivateLockdownRequest) returns (DeactivateLockdownResponse);
+
+  // GetAccessLog retrieves access history
+  rpc GetAccessLog(GetAccessLogRequest) returns (GetAccessLogResponse);
+
+  // ManageAccessRules manages access control rules
+  rpc CreateAccessRule(CreateAccessRuleRequest) returns (CreateAccessRuleResponse);
+  rpc UpdateAccessRule(UpdateAccessRuleRequest) returns (UpdateAccessRuleResponse);
+  rpc DeleteAccessRule(DeleteAccessRuleRequest) returns (DeleteAccessRuleResponse);
+  rpc ListAccessRules(ListAccessRulesRequest) returns (ListAccessRulesResponse);
+
+  // GetControllerStatus returns controller status
+  rpc GetControllerStatus(GetControllerStatusRequest) returns (ControllerStatus);
+}
+
+// ==================================================
+// Door Control Messages
+// ==================================================
+
+message UnlockDoorRequest {
+  // Required: Device ID of the access controller
+  string device_id = 1;
+
+  // Optional: Door ID (if controller manages multiple doors)
+  string door_id = 2;
+
+  // Optional: Unlock duration in seconds (0 = momentary, -1 = indefinite)
+  int32 duration_seconds = 3;
+
+  // Optional: Reason for unlock
+  string reason = 4;
+
+  // Optional: User/credential that triggered unlock
+  string triggered_by = 5;
+}
+
+message UnlockDoorResponse {
+  // Success
+  bool success = 1;
+
+  // Door ID
+  string door_id = 2;
+
+  // Unlock duration granted
+  int32 duration_seconds = 3;
+
+  // Timestamp
+  google.protobuf.Timestamp timestamp = 4;
+
+  // Error message (if failed)
+  string error = 5;
+}
+
+message LockDoorRequest {
+  // Required: Device ID
+  string device_id = 1;
+
+  // Optional: Door ID
+  string door_id = 2;
+
+  // Optional: Reason for lock
+  string reason = 3;
+}
+
+message LockDoorResponse {
+  // Success
+  bool success = 1;
+
+  // Door ID
+  string door_id = 2;
+
+  // Timestamp
+  google.protobuf.Timestamp timestamp = 3;
+}
+
+message GetDoorStatusRequest {
+  // Required: Device ID
+  string device_id = 1;
+
+  // Optional: Door ID
+  string door_id = 2;
+}
+
+message DoorStatus {
+  // Device ID
+  string device_id = 1;
+
+  // Door ID
+  string door_id = 2;
+
+  // Door name
+  string door_name = 3;
+
+  // Lock status
+  LockStatus lock_status = 4;
+
+  // Door position
+  DoorPosition door_position = 5;
+
+  // Door mode
+  DoorMode mode = 6;
+
+  // Door locked since
+  google.protobuf.Timestamp locked_since = 7;
+
+  // Door unlocked since (if unlocked)
+  google.protobuf.Timestamp unlocked_since = 8;
+
+  // Alarm status
+  AlarmStatus alarm_status = 9;
+
+  // Last access event
+  AccessEvent last_access = 10;
+
+  // Statistics
+  DoorStatistics statistics = 11;
+
+  // Hardware status
+  DoorHardwareStatus hardware = 12;
+}
+
+enum LockStatus {
+  LOCK_STATUS_UNKNOWN = 0;
+  LOCK_STATUS_LOCKED = 1;
+  LOCK_STATUS_UNLOCKED = 2;
+  LOCK_STATUS_UNLOCKING = 3;  // In process of unlocking
+  LOCK_STATUS_LOCKING = 4;    // In process of locking
+  LOCK_STATUS_ERROR = 5;      // Lock mechanism error
+}
+
+enum DoorPosition {
+  DOOR_POSITION_UNKNOWN = 0;
+  DOOR_POSITION_CLOSED = 1;
+  DOOR_POSITION_OPEN = 2;
+  DOOR_POSITION_AJAR = 3;     // Partially open
+  DOOR_POSITION_FORCED = 4;   // Forced open (alarm)
+}
+
+enum DoorMode {
+  DOOR_MODE_UNKNOWN = 0;
+  DOOR_MODE_NORMAL = 1;           // Normal access control
+  DOOR_MODE_UNLOCKED = 2;         // Door stays unlocked
+  DOOR_MODE_LOCKED = 3;           // Door stays locked
+  DOOR_MODE_OFFICE_MODE = 4;      // Unlocked during business hours
+  DOOR_MODE_LOCKDOWN = 5;         // Emergency lockdown
+  DOOR_MODE_FACILITY_CODE = 6;    // Facility code only
+  DOOR_MODE_CARD_ONLY = 7;        // Card only (no PIN)
+}
+
+enum AlarmStatus {
+  ALARM_STATUS_NORMAL = 0;
+  ALARM_STATUS_DOOR_FORCED = 1;       // Door forced open
+  ALARM_STATUS_DOOR_HELD_OPEN = 2;    // Door held open too long
+  ALARM_STATUS_TAMPER = 3;            // Tamper detected
+  ALARM_STATUS_LOCK_FAILURE = 4;      // Lock mechanism failure
+  ALARM_STATUS_REX_FAILURE = 5;       // Request to exit failure
+}
+
+message DoorStatistics {
+  // Total access grants
+  int64 total_grants = 1;
+
+  // Total access denials
+  int64 total_denials = 2;
+
+  // Total alarms
+  int64 total_alarms = 3;
+
+  // Total unlocks
+  int64 total_unlocks = 4;
+
+  // Last grant timestamp
+  google.protobuf.Timestamp last_grant = 5;
+
+  // Last denial timestamp
+  google.protobuf.Timestamp last_denial = 6;
+
+  // Last alarm timestamp
+  google.protobuf.Timestamp last_alarm = 7;
+
+  // Uptime
+  google.protobuf.Timestamp started_at = 8;
+}
+
+message DoorHardwareStatus {
+  // Lock mechanism status
+  HardwareComponentStatus lock = 1;
+
+  // Door sensor status
+  HardwareComponentStatus door_sensor = 2;
+
+  // Request to exit (REX) button status
+  HardwareComponentStatus rex_button = 3;
+
+  // Tamper switch status
+  HardwareComponentStatus tamper_switch = 4;
+
+  // Power supply status
+  PowerSupplyStatus power_supply = 5;
+}
+
+message HardwareComponentStatus {
+  // Component name
+  string name = 1;
+
+  // Status
+  ComponentStatus status = 2;
+
+  // Last check timestamp
+  google.protobuf.Timestamp last_check = 3;
+
+  // Error message (if error)
+  string error = 4;
+}
+
+enum ComponentStatus {
+  COMPONENT_STATUS_UNKNOWN = 0;
+  COMPONENT_STATUS_OK = 1;
+  COMPONENT_STATUS_WARNING = 2;
+  COMPONENT_STATUS_ERROR = 3;
+  COMPONENT_STATUS_OFFLINE = 4;
+}
+
+message PowerSupplyStatus {
+  // On AC power
+  bool on_ac = 1;
+
+  // On battery backup
+  bool on_battery = 2;
+
+  // Battery level (0-100)
+  int32 battery_level = 3;
+
+  // Voltage
+  float voltage = 4;
+}
+
+// ==================================================
+// Access Decision Messages
+// ==================================================
+
+message CheckAccessRequest {
+  // Required: Device ID
+  string device_id = 1;
+
+  // Optional: Door ID
+  string door_id = 2;
+
+  // Credential to check (card UID, PIN, etc.)
+  Credential credential = 3;
+
+  // Optional: Additional context
+  AccessContext context = 4;
+}
+
+message CheckAccessResponse {
+  // Access decision
+  AccessDecision decision = 1;
+
+  // Reason for decision
+  string reason = 2;
+
+  // User/credential information
+  CredentialInfo credential_info = 3;
+
+  // Access rule that was applied
+  string rule_id = 4;
+
+  // Timestamp
+  google.protobuf.Timestamp timestamp = 5;
+}
+
+enum AccessDecision {
+  ACCESS_DECISION_UNKNOWN = 0;
+  ACCESS_DECISION_GRANTED = 1;
+  ACCESS_DECISION_DENIED = 2;
+  ACCESS_DECISION_PENDING = 3;  // Requires additional verification
+}
+
+message Credential {
+  // Credential type
+  CredentialType type = 1;
+
+  // Credential data
+  oneof data {
+    bytes card_uid = 10;
+    string pin = 11;
+    string qr_code = 12;
+    BiometricData biometric = 13;
+    MobileCredential mobile = 14;
+  }
+
+  // Credential format (for cards)
+  string format = 2;  // "wiegand26", "wiegand37", "mifare", etc.
+
+  // Facility code (for Wiegand)
+  int32 facility_code = 3;
+
+  // Card number (for Wiegand)
+  int32 card_number = 4;
+}
+
+enum CredentialType {
+  CREDENTIAL_TYPE_UNKNOWN = 0;
+  CREDENTIAL_TYPE_CARD = 1;
+  CREDENTIAL_TYPE_PIN = 2;
+  CREDENTIAL_TYPE_QR_CODE = 3;
+  CREDENTIAL_TYPE_BIOMETRIC = 4;
+  CREDENTIAL_TYPE_MOBILE = 5;
+  CREDENTIAL_TYPE_CARD_AND_PIN = 6;  // Multi-factor
+}
+
+message BiometricData {
+  // Biometric type
+  BiometricType type = 1;
+
+  // Template data
+  bytes template = 2;
+}
+
+enum BiometricType {
+  BIOMETRIC_TYPE_UNKNOWN = 0;
+  BIOMETRIC_TYPE_FINGERPRINT = 1;
+  BIOMETRIC_TYPE_FACIAL = 2;
+  BIOMETRIC_TYPE_IRIS = 3;
+  BIOMETRIC_TYPE_PALM = 4;
+}
+
+message MobileCredential {
+  // Mobile credential ID
+  string credential_id = 1;
+
+  // Device ID
+  string device_id = 2;
+
+  // Bluetooth MAC address
+  string bluetooth_mac = 3;
+}
+
+message AccessContext {
+  // Time of access attempt
+  google.protobuf.Timestamp timestamp = 1;
+
+  // Source IP (for network access)
+  string source_ip = 2;
+
+  // Area/zone attempting to access
+  string from_zone = 3;
+
+  // Area/zone being accessed
+  string to_zone = 4;
+
+  // Additional metadata
+  map<string, string> metadata = 5;
+}
+
+message CredentialInfo {
+  // User ID
+  string user_id = 1;
+
+  // User name
+  string user_name = 2;
+
+  // User type
+  UserType user_type = 3;
+
+  // Access level
+  string access_level = 4;
+
+  // Valid from
+  google.protobuf.Timestamp valid_from = 5;
+
+  // Valid until
+  google.protobuf.Timestamp valid_until = 6;
+
+  // Allowed doors
+  repeated string allowed_doors = 7;
+
+  // Allowed zones
+  repeated string allowed_zones = 8;
+
+  // Access schedule
+  string schedule_id = 9;
+
+  // Attributes
+  map<string, string> attributes = 10;
+}
+
+enum UserType {
+  USER_TYPE_UNKNOWN = 0;
+  USER_TYPE_EMPLOYEE = 1;
+  USER_TYPE_CONTRACTOR = 2;
+  USER_TYPE_VISITOR = 3;
+  USER_TYPE_VIP = 4;
+  USER_TYPE_ADMIN = 5;
+  USER_TYPE_SECURITY = 6;
+  USER_TYPE_EMERGENCY = 7;
+}
+
+// ==================================================
+// Grant Access (Combined Check + Unlock)
+// ==================================================
+
+message GrantAccessRequest {
+  // Required: Device ID
+  string device_id = 1;
+
+  // Optional: Door ID
+  string door_id = 2;
+
+  // Credential
+  Credential credential = 3;
+
+  // Optional: Context
+  AccessContext context = 4;
+
+  // Optional: Override unlock duration
+  int32 unlock_duration_seconds = 5;
+}
+
+message GrantAccessResponse {
+  // Access granted
+  bool granted = 1;
+
+  // Decision details
+  AccessDecision decision = 2;
+
+  // Reason
+  string reason = 3;
+
+  // Door unlocked
+  bool door_unlocked = 4;
+
+  // User info (if granted)
+  CredentialInfo user_info = 5;
+
+  // Timestamp
+  google.protobuf.Timestamp timestamp = 6;
+
+  // Access event ID (for audit)
+  string event_id = 7;
+}
+
+// ==================================================
+// Access Events
+// ==================================================
+
+message SubscribeAccessEventsRequest {
+  // Device ID (or empty for all controllers)
+  string device_id = 1;
+
+  // Door ID filter
+  repeated string door_ids = 2;
+
+  // Event type filter
+  repeated AccessEventType event_types = 3;
+}
+
+message AccessEvent {
+  // Event ID (unique)
+  string event_id = 1;
+
+  // Device ID
+  string device_id = 2;
+
+  // Door ID
+  string door_id = 3;
+
+  // Event type
+  AccessEventType type = 4;
+
+  // Event timestamp
+  google.protobuf.Timestamp timestamp = 5;
+
+  // Credential used (if applicable)
+  Credential credential = 6;
+
+  // User information (if identified)
+  CredentialInfo user_info = 7;
+
+  // Access decision
+  AccessDecision decision = 8;
+
+  // Reason
+  string reason = 9;
+
+  // Event severity
+  EventSeverity severity = 10;
+
+  // Additional event data
+  oneof event_data {
+    AccessGrantedEvent access_granted = 20;
+    AccessDeniedEvent access_denied = 21;
+    DoorForcedEvent door_forced = 22;
+    DoorHeldOpenEvent door_held_open = 23;
+    TamperEvent tamper = 24;
+    LockdownEvent lockdown = 25;
+  }
+}
+
+enum AccessEventType {
+  ACCESS_EVENT_TYPE_UNKNOWN = 0;
+  ACCESS_EVENT_TYPE_ACCESS_GRANTED = 1;
+  ACCESS_EVENT_TYPE_ACCESS_DENIED = 2;
+  ACCESS_EVENT_TYPE_DOOR_UNLOCKED = 3;
+  ACCESS_EVENT_TYPE_DOOR_LOCKED = 4;
+  ACCESS_EVENT_TYPE_DOOR_OPENED = 5;
+  ACCESS_EVENT_TYPE_DOOR_CLOSED = 6;
+  ACCESS_EVENT_TYPE_DOOR_FORCED = 7;
+  ACCESS_EVENT_TYPE_DOOR_HELD_OPEN = 8;
+  ACCESS_EVENT_TYPE_REX_PRESSED = 9;         // Request to exit
+  ACCESS_EVENT_TYPE_TAMPER_DETECTED = 10;
+  ACCESS_EVENT_TYPE_LOCKDOWN_ACTIVATED = 11;
+  ACCESS_EVENT_TYPE_LOCKDOWN_DEACTIVATED = 12;
+  ACCESS_EVENT_TYPE_MODE_CHANGED = 13;
+  ACCESS_EVENT_TYPE_ALARM_ACTIVATED = 14;
+  ACCESS_EVENT_TYPE_ALARM_CLEARED = 15;
+}
+
+enum EventSeverity {
+  EVENT_SEVERITY_INFO = 0;
+  EVENT_SEVERITY_WARNING = 1;
+  EVENT_SEVERITY_CRITICAL = 2;
+  EVENT_SEVERITY_EMERGENCY = 3;
+}
+
+message AccessGrantedEvent {
+  // Entry/exit direction
+  Direction direction = 1;
+
+  // Zone entered
+  string zone = 2;
+}
+
+enum Direction {
+  DIRECTION_UNKNOWN = 0;
+  DIRECTION_ENTRY = 1;
+  DIRECTION_EXIT = 2;
+}
+
+message AccessDeniedEvent {
+  // Denial reason
+  DenialReason denial_reason = 1;
+
+  // Attempted credential
+  string credential_id = 2;
+}
+
+enum DenialReason {
+  DENIAL_REASON_UNKNOWN = 0;
+  DENIAL_REASON_INVALID_CREDENTIAL = 1;
+  DENIAL_REASON_EXPIRED_CREDENTIAL = 2;
+  DENIAL_REASON_NOT_YET_VALID = 3;
+  DENIAL_REASON_ACCESS_LEVEL = 4;
+  DENIAL_REASON_SCHEDULE = 5;           // Outside allowed schedule
+  DENIAL_REASON_ZONE_VIOLATION = 6;     // Anti-passback, zone rules
+  DENIAL_REASON_LOCKDOWN = 7;
+  DENIAL_REASON_BLACKLISTED = 8;
+  DENIAL_REASON_INVALID_PIN = 9;
+  DENIAL_REASON_DURESS = 10;            // Duress code used
+}
+
+message DoorForcedEvent {
+  // Force detected duration
+  int32 duration_ms = 1;
+
+  // Alarm triggered
+  bool alarm_triggered = 2;
+}
+
+message DoorHeldOpenEvent {
+  // Door open duration
+  int32 duration_seconds = 1;
+
+  // Threshold exceeded
+  int32 threshold_seconds = 2;
+
+  // Alarm triggered
+  bool alarm_triggered = 3;
+}
+
+message TamperEvent {
+  // Tamper type
+  TamperType tamper_type = 1;
+
+  // Component affected
+  string component = 2;
+}
+
+enum TamperType {
+  TAMPER_TYPE_UNKNOWN = 0;
+  TAMPER_TYPE_COVER_REMOVED = 1;
+  TAMPER_TYPE_WIRING_CUT = 2;
+  TAMPER_TYPE_SENSOR_DISABLED = 3;
+}
+
+message LockdownEvent {
+  // Lockdown activated or deactivated
+  bool activated = 1;
+
+  // Lockdown level
+  LockdownLevel level = 2;
+
+  // Reason
+  string reason = 3;
+
+  // Initiated by
+  string initiated_by = 4;
+}
+
+enum LockdownLevel {
+  LOCKDOWN_LEVEL_UNKNOWN = 0;
+  LOCKDOWN_LEVEL_PARTIAL = 1;   // Some doors locked
+  LOCKDOWN_LEVEL_FULL = 2;      // All doors locked
+  LOCKDOWN_LEVEL_EVACUATION = 3; // All doors unlocked for evacuation
+}
+
+// ==================================================
+// Door Mode Control
+// ==================================================
+
+message SetDoorModeRequest {
+  // Device ID
+  string device_id = 1;
+
+  // Door ID
+  string door_id = 2;
+
+  // Mode to set
+  DoorMode mode = 3;
+
+  // Optional: Schedule for office mode
+  Schedule schedule = 4;
+}
+
+message SetDoorModeResponse {
+  // Success
+  bool success = 1;
+
+  // Current mode
+  DoorMode current_mode = 2;
+}
+
+message Schedule {
+  // Schedule ID
+  string schedule_id = 1;
+
+  // Schedule name
+  string name = 2;
+
+  // Time periods
+  repeated TimePeriod periods = 3;
+}
+
+message TimePeriod {
+  // Days of week (0=Sunday, 6=Saturday)
+  repeated int32 days_of_week = 1;
+
+  // Start time (HH:MM)
+  string start_time = 2;
+
+  // End time (HH:MM)
+  string end_time = 3;
+
+  // Date range (optional)
+  google.protobuf.Timestamp valid_from = 4;
+  google.protobuf.Timestamp valid_until = 5;
+}
+
+// ==================================================
+// Emergency Lockdown
+// ==================================================
+
+message ActivateLockdownRequest {
+  // Device ID (empty = all controllers)
+  string device_id = 1;
+
+  // Lockdown level
+  LockdownLevel level = 2;
+
+  // Reason
+  string reason = 3;
+
+  // Initiated by
+  string initiated_by = 4;
+
+  // Specific doors to lockdown (empty = all)
+  repeated string door_ids = 5;
+}
+
+message ActivateLockdownResponse {
+  // Success
+  bool success = 1;
+
+  // Doors locked
+  repeated string doors_locked = 2;
+
+  // Timestamp
+  google.protobuf.Timestamp timestamp = 3;
+}
+
+message DeactivateLockdownRequest {
+  // Device ID
+  string device_id = 1;
+
+  // Reason
+  string reason = 2;
+
+  // Deactivated by
+  string deactivated_by = 3;
+}
+
+message DeactivateLockdownResponse {
+  // Success
+  bool success = 1;
+
+  // Doors returned to normal
+  repeated string doors_restored = 2;
+
+  // Timestamp
+  google.protobuf.Timestamp timestamp = 3;
+}
+
+// ==================================================
+// Access Log
+// ==================================================
+
+message GetAccessLogRequest {
+  // Device ID (empty = all)
+  string device_id = 1;
+
+  // Door ID filter
+  repeated string door_ids = 2;
+
+  // Time range
+  google.protobuf.Timestamp start_time = 3;
+  google.protobuf.Timestamp end_time = 4;
+
+  // Event type filter
+  repeated AccessEventType event_types = 5;
+
+  // User filter
+  repeated string user_ids = 6;
+
+  // Pagination
+  int32 page_size = 7;
+  string page_token = 8;
+}
+
+message GetAccessLogResponse {
+  // Access events
+  repeated AccessEvent events = 1;
+
+  // Next page token
+  string next_page_token = 2;
+
+  // Total count
+  int64 total_count = 3;
+}
+
+// ==================================================
+// Access Rules Management
+// ==================================================
+
+message CreateAccessRuleRequest {
+  // Access rule
+  AccessRule rule = 1;
+}
+
+message CreateAccessRuleResponse {
+  // Created rule ID
+  string rule_id = 1;
+
+  // Success
+  bool success = 2;
+}
+
+message UpdateAccessRuleRequest {
+  // Rule ID
+  string rule_id = 1;
+
+  // Updated rule
+  AccessRule rule = 2;
+}
+
+message UpdateAccessRuleResponse {
+  // Success
+  bool success = 1;
+}
+
+message DeleteAccessRuleRequest {
+  // Rule ID
+  string rule_id = 1;
+}
+
+message DeleteAccessRuleResponse {
+  // Success
+  bool success = 1;
+}
+
+message ListAccessRulesRequest {
+  // Filter by door
+  repeated string door_ids = 1;
+
+  // Filter by user type
+  repeated UserType user_types = 2;
+
+  // Pagination
+  int32 page_size = 3;
+  string page_token = 4;
+}
+
+message ListAccessRulesResponse {
+  // Access rules
+  repeated AccessRule rules = 1;
+
+  // Next page token
+  string next_page_token = 2;
+
+  // Total count
+  int64 total_count = 3;
+}
+
+message AccessRule {
+  // Rule ID
+  string rule_id = 1;
+
+  // Rule name
+  string name = 2;
+
+  // Description
+  string description = 3;
+
+  // Priority (higher = evaluated first)
+  int32 priority = 4;
+
+  // Enabled
+  bool enabled = 5;
+
+  // Conditions
+  RuleConditions conditions = 6;
+
+  // Action
+  RuleAction action = 7;
+
+  // Created at
+  google.protobuf.Timestamp created_at = 8;
+
+  // Updated at
+  google.protobuf.Timestamp updated_at = 9;
+}
+
+message RuleConditions {
+  // User types
+  repeated UserType user_types = 1;
+
+  // Access levels
+  repeated string access_levels = 2;
+
+  // Doors
+  repeated string door_ids = 3;
+
+  // Zones (from -> to)
+  repeated ZoneTransition zone_transitions = 4;
+
+  // Schedules
+  repeated string schedule_ids = 5;
+
+  // Time window
+  google.protobuf.Timestamp valid_from = 6;
+  google.protobuf.Timestamp valid_until = 7;
+
+  // Additional conditions
+  map<string, string> custom_conditions = 8;
+}
+
+message ZoneTransition {
+  // From zone
+  string from_zone = 1;
+
+  // To zone
+  string to_zone = 2;
+}
+
+message RuleAction {
+  // Grant or deny
+  AccessDecision decision = 1;
+
+  // Unlock duration (if granted)
+  int32 unlock_duration_seconds = 2;
+
+  // Send notification
+  bool send_notification = 3;
+
+  // Notification recipients
+  repeated string notification_recipients = 4;
+
+  // Log level
+  EventSeverity log_severity = 5;
+}
+
+// ==================================================
+// Controller Status
+// ==================================================
+
+message GetControllerStatusRequest {
+  // Device ID
+  string device_id = 1;
+}
+
+message ControllerStatus {
+  // Device ID
+  string device_id = 1;
+
+  // Controller name
+  string name = 2;
+
+  // Status
+  DeviceStatus status = 3;
+
+  // Controller type
+  ControllerType type = 4;
+
+  // Doors managed
+  repeated DoorStatus doors = 5;
+
+  // Firmware version
+  string firmware_version = 6;
+
+  // Model
+  string model = 7;
+
+  // Manufacturer
+  string manufacturer = 8;
+
+  // Connection type
+  string connection_type = 9;
+
+  // Lockdown active
+  bool lockdown_active = 10;
+
+  // Lockdown level
+  LockdownLevel lockdown_level = 11;
+
+  // Statistics
+  ControllerStatistics statistics = 12;
+
+  // Last communication
+  google.protobuf.Timestamp last_communication = 13;
+}
+
+enum ControllerType {
+  CONTROLLER_TYPE_UNKNOWN = 0;
+  CONTROLLER_TYPE_SINGLE_DOOR = 1;
+  CONTROLLER_TYPE_MULTI_DOOR = 2;
+  CONTROLLER_TYPE_NETWORK_PANEL = 3;
+  CONTROLLER_TYPE_ELEVATOR_CONTROL = 4;
+}
+
+message ControllerStatistics {
+  // Total access attempts
+  int64 total_access_attempts = 1;
+
+  // Total grants
+  int64 total_grants = 2;
+
+  // Total denials
+  int64 total_denials = 3;
+
+  // Total alarms
+  int64 total_alarms = 4;
+
+  // Online since
+  google.protobuf.Timestamp online_since = 5;
+}
