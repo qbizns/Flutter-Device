@@ -1,0 +1,537 @@
+syntax = "proto3";
+
+package devicebridge.v1;
+
+import "google/api/annotations.proto";
+import "google/protobuf/timestamp.proto";
+import "devicebridge/v1/common.proto";
+
+option go_package = "github.com/Macber-eg/Flutter-Device/proto/devicebridge/v1;devicebridgev1";
+
+// BadgePrinter service for card/badge printing operations
+service BadgePrinter {
+  // Print a badge with the given design and encoding
+  rpc PrintBadge(PrintBadgeRequest) returns (PrintBadgeResponse) {
+    option (google.api.http) = {
+      post: "/v1/devices/{device_id}/badge/print"
+      body: "*"
+    };
+  }
+
+  // Design a badge (preview without printing)
+  rpc DesignBadge(DesignBadgeRequest) returns (BadgeDesign) {
+    option (google.api.http) = {
+      post: "/v1/devices/{device_id}/badge/design"
+      body: "*"
+    };
+  }
+
+  // Get available badge templates
+  rpc GetBadgeTemplates(GetBadgeTemplatesRequest) returns (GetBadgeTemplatesResponse) {
+    option (google.api.http) = {
+      get: "/v1/devices/{device_id}/badge/templates"
+    };
+  }
+
+  // Get a specific template
+  rpc GetBadgeTemplate(GetBadgeTemplateRequest) returns (BadgeTemplate) {
+    option (google.api.http) = {
+      get: "/v1/devices/{device_id}/badge/templates/{template_id}"
+    };
+  }
+
+  // Encode card data (magnetic stripe or RFID)
+  rpc EncodeCard(EncodeCardRequest) returns (EncodeCardResponse) {
+    option (google.api.http) = {
+      post: "/v1/devices/{device_id}/badge/encode"
+      body: "*"
+    };
+  }
+
+  // Get printer status
+  rpc GetPrinterStatus(GetPrinterStatusRequest) returns (BadgePrinterStatus) {
+    option (google.api.http) = {
+      get: "/v1/devices/{device_id}/badge/status"
+    };
+  }
+
+  // Subscribe to printer events
+  rpc SubscribePrinterEvents(SubscribePrinterEventsRequest) returns (stream BadgePrinterEvent) {
+    option (google.api.http) = {
+      get: "/v1/devices/{device_id}/badge/events"
+    };
+  }
+
+  // Print multiple badges in batch
+  rpc PrintBadgeBatch(PrintBadgeBatchRequest) returns (PrintBadgeBatchResponse) {
+    option (google.api.http) = {
+      post: "/v1/devices/{device_id}/badge/batch"
+      body: "*"
+    };
+  }
+}
+
+// PrintBadgeRequest represents a badge print request
+message PrintBadgeRequest {
+  string device_id = 1;
+  BadgeDesign design = 2;
+  EncodingData encoding = 3;
+  PrintOptions options = 4;
+}
+
+// PrintBadgeResponse represents the result of a print request
+message PrintBadgeResponse {
+  string job_id = 1;
+  JobStatus status = 2;
+  string message = 3;
+  int32 cards_printed = 4;
+  google.protobuf.Timestamp started_at = 5;
+  google.protobuf.Timestamp completed_at = 6;
+}
+
+// BadgeDesign defines the visual design of a badge
+message BadgeDesign {
+  // Design source - template or custom
+  oneof design_source {
+    string template_id = 1;     // Use predefined template
+    CustomDesign custom = 2;     // Custom design
+  }
+
+  // Variable data to fill into template
+  map<string, string> variables = 3;
+
+  // Front side elements (always required)
+  repeated BadgeElement front_elements = 4;
+
+  // Back side elements (optional, for dual-sided printing)
+  repeated BadgeElement back_elements = 5;
+
+  // Card size (defaults to CR80)
+  CardSize card_size = 6;
+
+  // Orientation
+  Orientation orientation = 7;
+
+  // Background color
+  string background_color = 8;  // Hex color "#RRGGBB"
+}
+
+// CustomDesign for building badges from scratch
+message CustomDesign {
+  CardSize size = 1;
+  Orientation orientation = 2;
+  string background_color = 3;
+  repeated BadgeElement elements = 4;
+}
+
+// BadgeElement represents a single element on the badge
+message BadgeElement {
+  ElementType type = 1;
+  Position position = 2;
+  Size size = 3;
+  string content = 4;
+  ElementStyle style = 5;
+  int32 z_index = 6;  // Layering order (higher = on top)
+
+  enum ElementType {
+    ELEMENT_TYPE_UNSPECIFIED = 0;
+    ELEMENT_TYPE_TEXT = 1;
+    ELEMENT_TYPE_IMAGE = 2;
+    ELEMENT_TYPE_PHOTO = 3;
+    ELEMENT_TYPE_LOGO = 4;
+    ELEMENT_TYPE_BARCODE = 5;
+    ELEMENT_TYPE_QR_CODE = 6;
+    ELEMENT_TYPE_LINE = 7;
+    ELEMENT_TYPE_RECTANGLE = 8;
+    ELEMENT_TYPE_CIRCLE = 9;
+  }
+}
+
+// Position on the card (in pixels at 300 DPI)
+message Position {
+  int32 x = 1;  // Pixels from left
+  int32 y = 2;  // Pixels from top
+}
+
+// Size dimensions (in pixels)
+message Size {
+  int32 width = 1;
+  int32 height = 2;
+}
+
+// ElementStyle defines the visual styling
+message ElementStyle {
+  // Text style
+  string font_family = 1;
+  int32 font_size = 2;
+  bool bold = 3;
+  bool italic = 4;
+  bool underline = 5;
+  string color = 6;          // Hex color "#RRGGBB"
+  string background = 7;     // Hex color
+  TextAlign alignment = 8;
+
+  // Border
+  bool has_border = 9;
+  int32 border_width = 10;
+  string border_color = 11;
+  int32 border_radius = 12;  // For rounded corners
+
+  // Image style
+  ImageFit image_fit = 13;
+
+  // Barcode style
+  BarcodeType barcode_type = 14;
+  bool show_barcode_text = 15;
+
+  // Rotation
+  int32 rotation = 16;  // Degrees (0, 90, 180, 270)
+
+  enum TextAlign {
+    TEXT_ALIGN_UNSPECIFIED = 0;
+    TEXT_ALIGN_LEFT = 1;
+    TEXT_ALIGN_CENTER = 2;
+    TEXT_ALIGN_RIGHT = 3;
+    TEXT_ALIGN_JUSTIFY = 4;
+  }
+
+  enum ImageFit {
+    IMAGE_FIT_UNSPECIFIED = 0;
+    IMAGE_FIT_FILL = 1;      // Stretch to fill
+    IMAGE_FIT_CONTAIN = 2;   // Fit within bounds
+    IMAGE_FIT_COVER = 3;     // Cover bounds, crop if needed
+  }
+
+  enum BarcodeType {
+    BARCODE_TYPE_UNSPECIFIED = 0;
+    BARCODE_TYPE_CODE128 = 1;
+    BARCODE_TYPE_CODE39 = 2;
+    BARCODE_TYPE_EAN13 = 3;
+    BARCODE_TYPE_EAN8 = 4;
+    BARCODE_TYPE_UPC_A = 5;
+    BARCODE_TYPE_UPC_E = 6;
+  }
+}
+
+// EncodingData for magnetic stripe and RFID
+message EncodingData {
+  MagneticStripeData magnetic_stripe = 1;
+  RFIDData rfid = 2;
+}
+
+// MagneticStripeData for encoding magnetic stripes
+message MagneticStripeData {
+  bool enabled = 1;
+  string track1_data = 2;  // Up to 79 alphanumeric chars
+  string track2_data = 3;  // Up to 40 numeric chars
+  string track3_data = 4;  // Up to 107 numeric chars
+  CoercivityType coercivity = 5;
+
+  enum CoercivityType {
+    COERCIVITY_TYPE_UNSPECIFIED = 0;
+    COERCIVITY_TYPE_LOCO = 1;  // 300 Oe (low coercivity)
+    COERCIVITY_TYPE_HICO = 2;  // 2750 Oe (high coercivity)
+  }
+}
+
+// RFIDData for encoding RFID/NFC chips
+message RFIDData {
+  bool enabled = 1;
+  RFIDType type = 2;
+  bytes uid = 3;              // Card UID (4 or 7 bytes)
+  repeated RFIDBlock blocks = 4;  // Data blocks to write
+  bytes access_key = 5;       // Access key for secured chips
+
+  enum RFIDType {
+    RFID_TYPE_UNSPECIFIED = 0;
+    RFID_TYPE_MIFARE_CLASSIC_1K = 1;
+    RFID_TYPE_MIFARE_CLASSIC_4K = 2;
+    RFID_TYPE_MIFARE_ULTRALIGHT = 3;
+    RFID_TYPE_MIFARE_DESFIRE = 4;
+    RFID_TYPE_HID_ICLASS = 5;
+    RFID_TYPE_HID_PROX = 6;
+    RFID_TYPE_NTAG213 = 7;
+    RFID_TYPE_NTAG215 = 8;
+    RFID_TYPE_NTAG216 = 9;
+  }
+}
+
+// RFIDBlock represents a data block on the RFID chip
+message RFIDBlock {
+  int32 block_number = 1;
+  bytes data = 2;  // Block data (16 bytes for Mifare)
+}
+
+// PrintOptions defines how the badge should be printed
+message PrintOptions {
+  PrintSide side = 1;
+  PrintQuality quality = 2;
+  int32 copies = 3;
+  bool laminate = 4;
+  bool eject_card = 5;  // Eject card when done
+
+  enum PrintSide {
+    PRINT_SIDE_UNSPECIFIED = 0;
+    PRINT_SIDE_FRONT_ONLY = 1;
+    PRINT_SIDE_BACK_ONLY = 2;
+    PRINT_SIDE_BOTH = 3;
+  }
+
+  enum PrintQuality {
+    PRINT_QUALITY_UNSPECIFIED = 0;
+    PRINT_QUALITY_DRAFT = 1;
+    PRINT_QUALITY_NORMAL = 2;
+    PRINT_QUALITY_HIGH = 3;
+  }
+}
+
+// CardSize defines the physical card dimensions
+message CardSize {
+  SizeType type = 1;
+  int32 width_mm = 2;   // Custom width (if type = CUSTOM)
+  int32 height_mm = 3;  // Custom height (if type = CUSTOM)
+
+  enum SizeType {
+    SIZE_TYPE_UNSPECIFIED = 0;
+    SIZE_TYPE_CR80 = 1;  // Standard credit card (85.6 x 53.98 mm)
+    SIZE_TYPE_CR79 = 2;  // Slightly smaller (85.5 x 53.92 mm)
+    SIZE_TYPE_CR100 = 3; // Larger card (98.5 x 67.5 mm)
+    SIZE_TYPE_CUSTOM = 4;
+  }
+}
+
+// Orientation of the card
+enum Orientation {
+  ORIENTATION_UNSPECIFIED = 0;
+  ORIENTATION_PORTRAIT = 1;
+  ORIENTATION_LANDSCAPE = 2;
+}
+
+// DesignBadgeRequest for previewing a badge design
+message DesignBadgeRequest {
+  string device_id = 1;
+  BadgeDesign design = 2;
+}
+
+// GetBadgeTemplatesRequest to list available templates
+message GetBadgeTemplatesRequest {
+  string device_id = 1;
+}
+
+// GetBadgeTemplatesResponse with list of templates
+message GetBadgeTemplatesResponse {
+  repeated BadgeTemplate templates = 1;
+}
+
+// GetBadgeTemplateRequest to get a specific template
+message GetBadgeTemplateRequest {
+  string device_id = 1;
+  string template_id = 2;
+}
+
+// BadgeTemplate represents a reusable badge template
+message BadgeTemplate {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+  repeated string required_variables = 4;
+  repeated string optional_variables = 5;
+  BadgeDesign design = 6;
+  string preview_image_url = 7;  // URL to preview image
+  map<string, string> metadata = 8;
+}
+
+// EncodeCardRequest for encoding only (no printing)
+message EncodeCardRequest {
+  string device_id = 1;
+  EncodingData encoding = 2;
+}
+
+// EncodeCardResponse with encoding result
+message EncodeCardResponse {
+  bool success = 1;
+  string message = 2;
+  EncodedCardInfo card_info = 3;
+}
+
+// EncodedCardInfo about the encoded card
+message EncodedCardInfo {
+  bytes uid = 1;                    // Card UID
+  int32 blocks_written = 2;         // Number of blocks written (RFID)
+  repeated int32 tracks_written = 3; // Tracks written (magnetic stripe)
+}
+
+// GetPrinterStatusRequest to check printer status
+message GetPrinterStatusRequest {
+  string device_id = 1;
+}
+
+// BadgePrinterStatus represents the current printer state
+message BadgePrinterStatus {
+  string device_id = 1;
+  DeviceStatus status = 2;
+
+  // Consumables
+  RibbonStatus ribbon = 3;
+  int32 cards_remaining = 4;
+  int32 cards_capacity = 5;
+  CleaningStatus cleaning = 6;
+
+  // Current job
+  string current_job_id = 7;
+  int32 cards_in_job = 8;
+  int32 cards_completed = 9;
+  int32 cards_remaining_in_job = 10;
+
+  // Errors and warnings
+  repeated PrinterError errors = 11;
+  repeated PrinterWarning warnings = 12;
+
+  // Capabilities
+  PrinterCapabilities capabilities = 13;
+
+  // Firmware
+  string firmware_version = 14;
+  string model = 15;
+  string serial_number = 16;
+}
+
+// RibbonStatus for ribbon/ink information
+message RibbonStatus {
+  string type = 1;           // "YMCKO", "KO", "Monochrome", etc.
+  int32 panels_remaining = 2;
+  int32 panels_capacity = 3;
+  int32 percent_remaining = 4;
+  bool low_ribbon = 5;
+  bool ribbon_installed = 6;
+}
+
+// CleaningStatus for printer maintenance
+message CleaningStatus {
+  int32 prints_since_cleaning = 1;
+  int32 prints_until_cleaning = 2;
+  bool cleaning_required = 3;
+  google.protobuf.Timestamp last_cleaned = 4;
+}
+
+// PrinterCapabilities of the badge printer
+message PrinterCapabilities {
+  bool dual_sided = 1;
+  bool magnetic_stripe = 2;
+  bool rfid = 3;
+  repeated string rfid_types = 4;
+  bool lamination = 5;
+  int32 max_dpi = 6;
+  repeated string ribbon_types = 7;
+  int32 card_feeder_capacity = 8;
+}
+
+// PrinterError represents an error condition
+message PrinterError {
+  ErrorCode code = 1;
+  string message = 2;
+  google.protobuf.Timestamp timestamp = 3;
+  bool recoverable = 4;
+
+  enum ErrorCode {
+    ERROR_CODE_UNSPECIFIED = 0;
+    ERROR_CODE_NO_ERROR = 1;
+    ERROR_CODE_NO_RIBBON = 2;
+    ERROR_CODE_NO_CARDS = 3;
+    ERROR_CODE_CARD_JAM = 4;
+    ERROR_CODE_RIBBON_JAM = 5;
+    ERROR_CODE_PRINT_HEAD_ERROR = 6;
+    ERROR_CODE_ENCODER_ERROR = 7;
+    ERROR_CODE_COMMUNICATION_ERROR = 8;
+    ERROR_CODE_DOOR_OPEN = 9;
+    ERROR_CODE_OVER_TEMPERATURE = 10;
+    ERROR_CODE_INVALID_RIBBON = 11;
+    ERROR_CODE_LAMINATOR_ERROR = 12;
+  }
+}
+
+// PrinterWarning represents a warning condition
+message PrinterWarning {
+  WarningCode code = 1;
+  string message = 2;
+
+  enum WarningCode {
+    WARNING_CODE_UNSPECIFIED = 0;
+    WARNING_CODE_LOW_RIBBON = 1;
+    WARNING_CODE_LOW_CARDS = 2;
+    WARNING_CODE_CLEANING_REQUIRED = 3;
+    WARNING_CODE_FIRMWARE_UPDATE_AVAILABLE = 4;
+  }
+}
+
+// SubscribePrinterEventsRequest for event streaming
+message SubscribePrinterEventsRequest {
+  string device_id = 1;
+}
+
+// BadgePrinterEvent represents printer events
+message BadgePrinterEvent {
+  string device_id = 1;
+  EventType type = 2;
+  google.protobuf.Timestamp timestamp = 3;
+  string job_id = 4;
+  string details = 5;
+  map<string, string> metadata = 6;
+
+  enum EventType {
+    EVENT_TYPE_UNSPECIFIED = 0;
+    EVENT_TYPE_JOB_STARTED = 1;
+    EVENT_TYPE_JOB_COMPLETED = 2;
+    EVENT_TYPE_JOB_FAILED = 3;
+    EVENT_TYPE_CARD_PRINTED = 4;
+    EVENT_TYPE_CARD_ENCODED = 5;
+    EVENT_TYPE_RIBBON_LOW = 6;
+    EVENT_TYPE_CARDS_LOW = 7;
+    EVENT_TYPE_ERROR = 8;
+    EVENT_TYPE_DOOR_OPENED = 9;
+    EVENT_TYPE_DOOR_CLOSED = 10;
+    EVENT_TYPE_CLEANING_REQUIRED = 11;
+  }
+}
+
+// PrintBadgeBatchRequest for batch printing
+message PrintBadgeBatchRequest {
+  string device_id = 1;
+  repeated BatchBadge badges = 2;
+  PrintOptions default_options = 3;
+}
+
+// BatchBadge represents one badge in a batch
+message BatchBadge {
+  string badge_id = 1;  // Unique ID for tracking
+  BadgeDesign design = 2;
+  EncodingData encoding = 3;
+  PrintOptions options = 4;  // Override default if specified
+}
+
+// PrintBadgeBatchResponse for batch result
+message PrintBadgeBatchResponse {
+  string batch_id = 1;
+  int32 total_badges = 2;
+  int32 successful = 3;
+  int32 failed = 4;
+  repeated BatchBadgeResult results = 5;
+}
+
+// BatchBadgeResult for individual badge in batch
+message BatchBadgeResult {
+  string badge_id = 1;
+  bool success = 2;
+  string message = 3;
+  string job_id = 4;
+}
+
+// JobStatus represents the status of a print job
+enum JobStatus {
+  JOB_STATUS_UNSPECIFIED = 0;
+  JOB_STATUS_QUEUED = 1;
+  JOB_STATUS_PRINTING = 2;
+  JOB_STATUS_COMPLETED = 3;
+  JOB_STATUS_FAILED = 4;
+  JOB_STATUS_CANCELLED = 5;
+}
