@@ -29,13 +29,22 @@ func connectTCP(address string, port int, logger *telemetry.Logger) (Connection,
 
 // connectUSB creates a USB connection to the printer
 func connectUSB(vendorID, productID uint16, logger *telemetry.Logger) (Connection, error) {
-	// TODO: Implement USB connection using gousb or similar
-	// This requires USB HID or bulk transfer implementation
-	logger.Debug("USB connection requested (not yet implemented)",
+	logger.Debug("connecting to printer via USB",
 		telemetry.Int("vendor_id", int(vendorID)),
 		telemetry.Int("product_id", int(productID)),
 	)
-	return nil, fmt.Errorf("USB connection not yet implemented")
+
+	conn := &usbConnection{
+		vendorID:  vendorID,
+		productID: productID,
+		logger:    logger,
+	}
+
+	if err := conn.open(); err != nil {
+		return nil, fmt.Errorf("USB connection failed: %w", err)
+	}
+
+	return conn, nil
 }
 
 // tcpConnection implements Connection for TCP
