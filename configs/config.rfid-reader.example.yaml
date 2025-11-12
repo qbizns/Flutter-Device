@@ -1,0 +1,458 @@
+# RFID/NFC Reader Configuration Examples
+# Supports HID Prox, Mifare, iClass, NTAG, DESFire, FeliCa
+
+server:
+  grpc_port: 50051
+  http_port: 8080
+  metrics_port: 9090
+  host: "0.0.0.0"
+
+devices:
+  # Example 1: USB RFID Reader (ACR122U - General Purpose NFC)
+  - id: "rfid-reader-acr122u-01"
+    name: "Main Entrance NFC Reader"
+    kind: "rfid_reader.acr122u"
+    enabled: true
+    transport: "usb"
+    vendor_id: 0x072f    # ACS (Advanced Card Systems)
+    product_id: 0x2200   # ACR122U
+
+    metadata:
+      model: "ACR122U"
+      manufacturer: "ACS"
+      location: "Main Entrance"
+
+    settings:
+      # Supported protocols
+      supported_protocols:
+        - "mifare"
+        - "ntag"
+        - "desfire"
+        - "felica"
+
+      # Capabilities
+      can_read: true
+      can_write: true
+      can_authenticate: true
+      has_buzzer: true
+      has_led: true
+      supports_ndef: true
+
+      # Reader mode
+      mode: "continuous"  # continuous, single_read, idle
+      beep_on_detect: true
+      flash_on_detect: true
+      auto_read: true
+      read_interval_ms: 500
+
+      # Timeouts
+      read_timeout_sec: 30
+      write_timeout_sec: 10
+
+      # Default authentication keys (Mifare)
+      default_mifare_key_a: "FFFFFFFFFFFF"  # Factory default
+      default_mifare_key_b: "FFFFFFFFFFFF"
+
+    tags:
+      - "nfc"
+      - "contactless"
+      - "entrance"
+
+  # Example 2: USB HID Prox Reader (125 kHz)
+  - id: "rfid-reader-prox-01"
+    name: "Employee Access Control"
+    kind: "rfid_reader.hid_prox"
+    enabled: true
+    transport: "usb"
+    vendor_id: 0x076b    # OmniKey/HID
+    product_id: 0x5340   # HID ProxPoint Plus
+
+    metadata:
+      model: "ProxPoint Plus"
+      manufacturer: "HID Global"
+      location: "Employee Entrance"
+
+    settings:
+      supported_protocols:
+        - "prox"
+
+      can_read: true
+      can_write: false  # Prox cards are read-only
+      can_authenticate: false
+      has_buzzer: true
+      has_led: true
+      supports_ndef: false
+
+      mode: "continuous"
+      beep_on_detect: true
+      flash_on_detect: true
+      auto_read: true
+      read_interval_ms: 300
+
+      read_timeout_sec: 10
+
+    tags:
+      - "prox"
+      - "125khz"
+      - "employee-access"
+
+  # Example 3: Network RFID Reader (TCP)
+  - id: "rfid-reader-network-01"
+    name: "VIP Lounge Access"
+    kind: "rfid_reader.network"
+    enabled: true
+    transport: "tcp"
+    address: "192.168.1.50"
+    port: 10001
+
+    metadata:
+      model: "NetReader Pro"
+      manufacturer: "Generic"
+      location: "VIP Lounge"
+
+    settings:
+      supported_protocols:
+        - "mifare"
+        - "iclass"
+        - "desfire"
+
+      can_read: true
+      can_write: true
+      can_authenticate: true
+      has_buzzer: true
+      has_led: true
+      supports_ndef: true
+
+      mode: "continuous"
+      beep_on_detect: true
+      flash_on_detect: true
+      auto_read: true
+      read_interval_ms: 500
+
+      read_timeout_sec: 30
+      write_timeout_sec: 10
+
+      default_mifare_key_a: "A0A1A2A3A4A5"  # Custom key
+      default_mifare_key_b: "B0B1B2B3B4B5"
+      default_iclass_key: "0102030405060708"
+
+    tags:
+      - "vip"
+      - "network"
+      - "high-security"
+
+  # Example 4: Serial RFID Reader (RS-232)
+  - id: "rfid-reader-serial-01"
+    name: "Warehouse Gate Reader"
+    kind: "rfid_reader.serial"
+    enabled: true
+    transport: "serial"
+    serial_dev: "/dev/ttyUSB0"
+    baud_rate: 115200
+
+    metadata:
+      model: "ID-12LA"
+      manufacturer: "Innovations"
+      location: "Warehouse Gate"
+
+    settings:
+      supported_protocols:
+        - "prox"
+
+      can_read: true
+      can_write: false
+      can_authenticate: false
+      has_buzzer: true
+      has_led: false
+      supports_ndef: false
+
+      mode: "continuous"
+      beep_on_detect: true
+      auto_read: true
+      read_interval_ms: 500
+
+      read_timeout_sec: 10
+
+    tags:
+      - "warehouse"
+      - "serial"
+      - "gate-control"
+
+  # Example 5: Mifare Classic Reader (Conference Badge System)
+  - id: "rfid-reader-conference-01"
+    name: "Conference Check-In"
+    kind: "rfid_reader.mifare"
+    enabled: true
+    transport: "usb"
+    vendor_id: 0x072f
+    product_id: 0x2200
+
+    metadata:
+      model: "ACR122U"
+      manufacturer: "ACS"
+      location: "Registration Desk"
+      event: "Tech Conference 2025"
+
+    settings:
+      supported_protocols:
+        - "mifare"
+        - "ntag"
+
+      can_read: true
+      can_write: true
+      can_authenticate: true
+      has_buzzer: true
+      has_led: true
+      supports_ndef: true
+
+      mode: "single_read"  # Read once per card presentation
+      beep_on_detect: true
+      flash_on_detect: true
+      auto_read: true
+
+      read_timeout_sec: 5
+      write_timeout_sec: 5
+
+      # Custom authentication keys for conference badges
+      default_mifare_key_a: "CONFERENCE2025"
+      default_mifare_key_b: "BADGE12345678"
+
+    tags:
+      - "conference"
+      - "registration"
+      - "mifare"
+
+  # Example 6: HID iClass Reader (High-Security Access)
+  - id: "rfid-reader-iclass-01"
+    name: "Secure Area Access"
+    kind: "rfid_reader.iclass"
+    enabled: true
+    transport: "usb"
+    vendor_id: 0x076b
+    product_id: 0x5121   # OmniKey CardMan 5121
+
+    metadata:
+      model: "CardMan 5121"
+      manufacturer: "HID/OmniKey"
+      location: "Secure Server Room"
+
+    settings:
+      supported_protocols:
+        - "iclass"
+        - "mifare"
+
+      can_read: true
+      can_write: true
+      can_authenticate: true
+      has_buzzer: true
+      has_led: true
+      supports_ndef: false
+
+      mode: "continuous"
+      beep_on_detect: true
+      flash_on_detect: true
+      auto_read: true
+      read_interval_ms: 500
+
+      read_timeout_sec: 30
+      write_timeout_sec: 10
+
+      default_iclass_key: "SECUREKEY001"
+
+    tags:
+      - "iclass"
+      - "high-security"
+      - "server-room"
+
+  # Example 7: NFC Reader (Visitor Management)
+  - id: "rfid-reader-visitor-01"
+    name: "Visitor Badge Reader"
+    kind: "rfid_reader.nfc"
+    enabled: true
+    transport: "usb"
+    vendor_id: 0x072f
+    product_id: 0x2200
+
+    metadata:
+      model: "ACR122U"
+      manufacturer: "ACS"
+      location: "Reception"
+
+    settings:
+      supported_protocols:
+        - "ntag"
+        - "mifare"
+
+      can_read: true
+      can_write: true
+      can_authenticate: false  # Visitor badges don't require auth
+      has_buzzer: true
+      has_led: true
+      supports_ndef: true
+
+      mode: "continuous"
+      beep_on_detect: true
+      flash_on_detect: true
+      auto_read: true
+      read_interval_ms: 500
+
+      read_timeout_sec: 10
+      write_timeout_sec: 5
+
+    tags:
+      - "visitor"
+      - "nfc"
+      - "reception"
+
+  # Example 8: Multi-Technology Reader
+  - id: "rfid-reader-multi-01"
+    name: "Universal Access Reader"
+    kind: "rfid_reader.multi"
+    enabled: true
+    transport: "tcp"
+    address: "192.168.1.51"
+    port: 10002
+
+    metadata:
+      model: "MultiTech Pro"
+      manufacturer: "Generic"
+      location: "Main Security Checkpoint"
+
+    settings:
+      # Support all technologies
+      supported_protocols:
+        - "prox"
+        - "mifare"
+        - "iclass"
+        - "ntag"
+        - "desfire"
+
+      can_read: true
+      can_write: true
+      can_authenticate: true
+      has_buzzer: true
+      has_led: true
+      supports_ndef: true
+
+      mode: "continuous"
+      beep_on_detect: true
+      flash_on_detect: true
+      auto_read: true
+      read_interval_ms: 300  # Faster polling for multiple protocols
+
+      read_timeout_sec: 30
+      write_timeout_sec: 10
+
+      # Multiple authentication keys
+      default_mifare_key_a: "FFFFFFFFFFFF"
+      default_mifare_key_b: "FFFFFFFFFFFF"
+      default_iclass_key: "0102030405060708"
+
+    tags:
+      - "multi-technology"
+      - "universal"
+      - "security-checkpoint"
+
+  # Example 9: FeliCa Reader (Transit/Payment)
+  - id: "rfid-reader-felica-01"
+    name: "Transit Payment Reader"
+    kind: "rfid_reader.felica"
+    enabled: true
+    transport: "usb"
+    vendor_id: 0x054c    # Sony
+    product_id: 0x06c3   # PaSoRi RC-S380
+
+    metadata:
+      model: "PaSoRi RC-S380"
+      manufacturer: "Sony"
+      location: "Transit Gate"
+
+    settings:
+      supported_protocols:
+        - "felica"
+
+      can_read: true
+      can_write: true
+      can_authenticate: false
+      has_buzzer: true
+      has_led: true
+      supports_ndef: true
+
+      mode: "continuous"
+      beep_on_detect: true
+      flash_on_detect: true
+      auto_read: true
+      read_interval_ms: 200  # Fast for transit
+
+      read_timeout_sec: 5
+
+    tags:
+      - "felica"
+      - "transit"
+      - "payment"
+
+  # Example 10: Backup Reader (Standby)
+  - id: "rfid-reader-backup-01"
+    name: "Backup Access Reader"
+    kind: "rfid_reader.backup"
+    enabled: false  # Disabled until needed
+    transport: "usb"
+    vendor_id: 0x072f
+    product_id: 0x2200
+
+    metadata:
+      model: "ACR122U"
+      manufacturer: "ACS"
+      location: "IT Room"
+      role: "backup"
+
+    settings:
+      supported_protocols:
+        - "mifare"
+        - "ntag"
+
+      can_read: true
+      can_write: true
+      can_authenticate: true
+      has_buzzer: true
+      has_led: true
+      supports_ndef: true
+
+      mode: "continuous"
+      beep_on_detect: true
+      flash_on_detect: true
+      auto_read: true
+      read_interval_ms: 500
+
+      read_timeout_sec: 30
+      write_timeout_sec: 10
+
+      default_mifare_key_a: "FFFFFFFFFFFF"
+      default_mifare_key_b: "FFFFFFFFFFFF"
+
+    tags:
+      - "backup"
+      - "standby"
+
+# Logging configuration
+logging:
+  level: "info"  # debug, info, warn, error
+  format: "json"  # json or text
+
+# Telemetry configuration
+telemetry:
+  metrics:
+    enabled: true
+  tracing:
+    enabled: false
+
+# Security configuration
+security:
+  api_auth:
+    enabled: true
+    api_keys:
+      - "your-api-key-here"
+  tls:
+    enabled: false
+  acl:
+    enabled: false
