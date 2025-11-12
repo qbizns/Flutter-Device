@@ -1,0 +1,80 @@
+name: flutter_device_bridge
+description: Official Flutter SDK for Device Bridge - Universal hardware integration for POS, RFID, access control, badge printers, and more.
+version: 1.0.0
+homepage: https://github.com/Macber-eg/Flutter-Device
+repository: https://github.com/Macber-eg/Flutter-Device
+issue_tracker: https://github.com/Macber-eg/Flutter-Device/issues
+documentation: https://github.com/Macber-eg/Flutter-Device/tree/main/sdk/flutter
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+  flutter: ">=3.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # HTTP client for REST API
+  http: ^1.1.0
+
+  # gRPC support
+  grpc: ^3.2.0
+  protobuf: ^3.1.0
+
+  # WebSocket support for events
+  web_socket_channel: ^2.4.0
+
+  # JSON serialization
+  json_annotation: ^4.8.1
+
+  # Utilities
+  meta: ^1.10.0
+  rxdart: ^0.27.7
+
+  # Logging
+  logging: ^1.2.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  # Code generation
+  build_runner: ^2.4.0
+  json_serializable: ^6.7.0
+
+  # Testing
+  mockito: ^5.4.0
+  test: ^1.24.0
+
+  # Linting
+  flutter_lints: ^3.0.0
+
+flutter:
+  # No assets for SDK
+
+# Publishing configuration
+publish_to: none  # Remove this when ready to publish to pub.dev
+
+topics:
+  - hardware
+  - pos
+  - rfid
+  - nfc
+  - access-control
+  - badge-printer
+  - barcode-scanner
+  - payment-terminal
+  - iot
+  - device-integration
+
+platforms:
+  android:
+  ios:
+  linux:
+  macos:
+  web:
+  windows:
+
+screenshots:
+  - description: 'Device Bridge Architecture'
+    path: docs/images/architecture.png
