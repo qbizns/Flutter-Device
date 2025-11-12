@@ -132,7 +132,7 @@ func TestNewDriver(t *testing.T) {
 		Timeout:   5 * time.Second,
 	}
 
-	logger := telemetry.NewLogger()
+	logger, _ := telemetry.NewLogger("info", "text")
 	driver := NewDriver("test-printer", "Test Printer", config, logger)
 
 	if driver == nil {
@@ -157,7 +157,7 @@ func TestDriver_StartStop(t *testing.T) {
 	config.VendorID = 0x04b8
 	config.ProductID = 0x0e15
 
-	logger := telemetry.NewLogger()
+	logger, _ := telemetry.NewLogger("info", "text")
 	driver := NewDriver("test", "Test", config, logger)
 
 	// Create mock device
@@ -185,7 +185,7 @@ func TestDriver_StartStop(t *testing.T) {
 
 func TestDriver_Print(t *testing.T) {
 	config := DefaultConfig()
-	logger := telemetry.NewLogger()
+	logger, _ := telemetry.NewLogger("info", "text")
 	driver := NewDriver("test", "Test", config, logger)
 
 	// Setup mock device
@@ -259,7 +259,7 @@ func TestDriver_Print(t *testing.T) {
 
 func TestDriver_Print_NotConnected(t *testing.T) {
 	config := DefaultConfig()
-	logger := telemetry.NewLogger()
+	logger, _ := telemetry.NewLogger("info", "text")
 	driver := NewDriver("test", "Test", config, logger)
 
 	// Don't connect device
@@ -283,7 +283,7 @@ func TestDriver_Print_NotConnected(t *testing.T) {
 
 func TestDriver_OpenDrawer(t *testing.T) {
 	config := DefaultConfig()
-	logger := telemetry.NewLogger()
+	logger, _ := telemetry.NewLogger("info", "text")
 	driver := NewDriver("test", "Test", config, logger)
 
 	// Setup mock device
@@ -314,7 +314,7 @@ func TestDriver_OpenDrawer(t *testing.T) {
 
 func TestDriver_GetStatus(t *testing.T) {
 	config := DefaultConfig()
-	logger := telemetry.NewLogger()
+	logger, _ := telemetry.NewLogger("info", "text")
 	driver := NewDriver("test", "Test", config, logger)
 
 	// Setup mock device
@@ -354,7 +354,7 @@ func TestDriver_GetStatus(t *testing.T) {
 
 func TestDriver_GetStatus_NotConnected(t *testing.T) {
 	config := DefaultConfig()
-	logger := telemetry.NewLogger()
+	logger, _ := telemetry.NewLogger("info", "text")
 	driver := NewDriver("test", "Test", config, logger)
 
 	// Don't connect device
@@ -374,7 +374,7 @@ func TestDriver_GetStatus_NotConnected(t *testing.T) {
 
 func TestDriver_WriteError(t *testing.T) {
 	config := DefaultConfig()
-	logger := telemetry.NewLogger()
+	logger, _ := telemetry.NewLogger("info", "text")
 	driver := NewDriver("test", "Test", config, logger)
 
 	// Setup mock device with write error
@@ -422,7 +422,7 @@ func TestConfig_Defaults(t *testing.T) {
 
 func BenchmarkDriver_Print(b *testing.B) {
 	config := DefaultConfig()
-	logger := telemetry.NewLogger()
+	logger, _ := telemetry.NewLogger("info", "text")
 	driver := NewDriver("test", "Test", config, logger)
 
 	mock := newMockUSBDevice()

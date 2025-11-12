@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -157,13 +158,15 @@ func main() {
 
 			// Parse configuration from DeviceConfig metadata
 			if devCfg.Metadata != nil {
-				if port, ok := devCfg.Metadata["port"].(string); ok {
+				if port, ok := devCfg.Metadata["port"]; ok {
 					scaleConfig.Port = port
 				}
-				if baudRate, ok := devCfg.Metadata["baud_rate"].(int); ok {
-					scaleConfig.BaudRate = baudRate
+				if baudRateStr, ok := devCfg.Metadata["baud_rate"]; ok {
+					if baudRate, err := strconv.Atoi(baudRateStr); err == nil {
+						scaleConfig.BaudRate = baudRate
+					}
 				}
-				if protocol, ok := devCfg.Metadata["protocol"].(string); ok {
+				if protocol, ok := devCfg.Metadata["protocol"]; ok {
 					scaleConfig.Protocol = protocol
 				}
 			}
