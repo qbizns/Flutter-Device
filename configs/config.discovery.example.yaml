@@ -1,0 +1,315 @@
+# Device Auto-Discovery Configuration Examples
+# ============================================
+#
+# This file demonstrates various discovery configurations for automatic
+# device detection across USB, Serial, and Network transports.
+
+# Server Configuration
+server:
+  grpc:
+    address: ":50051"
+  rest:
+    address: ":8080"
+  websocket:
+    path: "/ws"
+
+security:
+  mode: "development"
+
+# ==============================================================================
+# Example 1: Full Auto-Discovery (Development Environment)
+# ==============================================================================
+# Discovers all device types and auto-registers them
+# Good for development and testing
+
+discovery:
+  enabled: true
+  scan_interval: 30s          # Scan every 30 seconds
+  auto_register: true          # Automatically register discovered devices
+
+  transports:
+    - usb
+    - serial
+    - mdns
+
+  usb:
+    discover_printers: true
+    discover_scanners: true
+
+  serial:
+    discover_scales: true
+    baud_rates:
+      - 9600
+      - 19200
+    probe_timeout: 2s
+
+  mdns:
+    services:
+      - "_ipp._tcp"
+      - "_printer._tcp"
+    timeout: 3s
+
+# ==============================================================================
+# Example 2: Production POS Station
+# ==============================================================================
+# USB-only discovery with manual approval
+# Longer scan interval to reduce system load
+
+# discovery:
+#   enabled: true
+#   scan_interval: 5m          # Scan every 5 minutes
+#   auto_register: false        # Manual approval required
+#
+#   transports:
+#     - usb
+#
+#   usb:
+#     discover_printers: true   # Receipt printers
+#     discover_scanners: true   # Barcode scanners
+
+# ==============================================================================
+# Example 3: Scale Weighing Station
+# ==============================================================================
+# Serial port discovery only for scales
+# Multiple baud rates for compatibility
+
+# discovery:
+#   enabled: true
+#   scan_interval: 1m
+#   auto_register: true
+#
+#   transports:
+#     - serial
+#
+#   serial:
+#     discover_scales: true
+#     baud_rates:
+#       - 9600
+#       - 19200
+#       - 4800
+#       - 38400
+#     probe_timeout: 3s
+
+# ==============================================================================
+# Example 4: Network Print Server
+# ==============================================================================
+# mDNS discovery for network printers
+# Monitors for printer additions/removals
+
+# discovery:
+#   enabled: true
+#   scan_interval: 2m
+#   auto_register: false
+#
+#   transports:
+#     - mdns
+#
+#   mdns:
+#     services:
+#       - "_ipp._tcp"
+#       - "_printer._tcp"
+#       - "_pdl-datastream._tcp"
+#       - "_http._tcp"
+#     timeout: 5s
+
+# ==============================================================================
+# Example 5: Hybrid Retail Environment
+# ==============================================================================
+# USB for local devices, network for shared printers
+
+# discovery:
+#   enabled: true
+#   scan_interval: 2m
+#   auto_register: false
+#
+#   transports:
+#     - usb
+#     - mdns
+#
+#   usb:
+#     discover_printers: true   # Local receipt printer
+#     discover_scanners: true   # Local barcode scanner
+#
+#   mdns:
+#     services:
+#       - "_ipp._tcp"           # Shared label printer
+#     timeout: 3s
+
+# ==============================================================================
+# Example 6: Industrial Weighing Station
+# ==============================================================================
+# Serial scales with extensive protocol support
+
+# discovery:
+#   enabled: true
+#   scan_interval: 30s
+#   auto_register: true
+#
+#   transports:
+#     - serial
+#
+#   serial:
+#     discover_scales: true
+#     baud_rates:
+#       - 9600   # Most common
+#       - 19200  # High-precision scales
+#       - 4800   # Some older models
+#       - 38400  # Industrial scales
+#       - 2400   # Legacy scales
+#     probe_timeout: 2s
+
+# ==============================================================================
+# Example 7: Multi-Location Setup
+# ==============================================================================
+# Different discovery per location using metadata
+
+# discovery:
+#   enabled: true
+#   scan_interval: 1m
+#   auto_register: true
+#
+#   transports:
+#     - usb
+#     - serial
+#
+#   usb:
+#     discover_printers: true
+#     discover_scanners: true
+#
+#   serial:
+#     discover_scales: true
+#     baud_rates:
+#       - 9600
+#       - 19200
+#     probe_timeout: 2s
+#
+#   # Metadata added to all discovered devices
+#   metadata:
+#     location: "Store #42"
+#     region: "Northwest"
+
+# ==============================================================================
+# Example 8: Disabled Discovery (Manual Configuration Only)
+# ==============================================================================
+# All devices manually configured in config file
+
+# discovery:
+#   enabled: false              # No auto-discovery
+#
+# devices:
+#   # Manually configured devices
+#   - id: main-printer
+#     kind: printer.usb
+#     vendor_id: 0x04b8
+#     product_id: 0x0e15
+#
+#   - id: barcode-scanner
+#     kind: scanner.hid
+#     vendor_id: 0x05e0
+#     product_id: 0x1200
+#
+#   - id: scale-01
+#     kind: scale.serial
+#     metadata:
+#       port: "/dev/ttyUSB0"
+#       protocol: "mtsics"
+
+# ==============================================================================
+# Example 9: High-Security Environment
+# ==============================================================================
+# Discovery enabled but auto-register disabled
+# All devices require manual approval
+
+# discovery:
+#   enabled: true
+#   scan_interval: 10m          # Infrequent scans
+#   auto_register: false         # Manual approval required
+#
+#   transports:
+#     - usb                      # Only trusted USB devices
+#
+#   usb:
+#     discover_printers: true
+#     discover_scanners: true
+
+# ==============================================================================
+# Example 10: Development Lab
+# ==============================================================================
+# Fast discovery for rapid testing
+
+# discovery:
+#   enabled: true
+#   scan_interval: 10s          # Very frequent scans
+#   auto_register: true          # Instant registration
+#
+#   transports:
+#     - usb
+#     - serial
+#     - mdns
+#
+#   usb:
+#     discover_printers: true
+#     discover_scanners: true
+#
+#   serial:
+#     discover_scales: true
+#     baud_rates:
+#       - 9600
+#     probe_timeout: 1s
+#
+#   mdns:
+#     services:
+#       - "_ipp._tcp"
+#       - "_printer._tcp"
+#     timeout: 2s
+
+# ==============================================================================
+# Discovery Event Subscription Example
+# ==============================================================================
+#
+# To receive discovery events via WebSocket:
+#
+# const ws = new WebSocket('ws://localhost:8080/ws');
+#
+# ws.send(JSON.stringify({
+#   type: 'subscribe',
+#   device_id: '*',
+#   event_types: ['discovery.discovered', 'discovery.removed']
+# }));
+#
+# ws.onmessage = (event) => {
+#   const data = JSON.parse(event.data);
+#   if (data.type === 'discovery.discovered') {
+#     console.log('New device found:', data.data);
+#     // Optionally prompt user to register device
+#   } else if (data.type === 'discovery.removed') {
+#     console.log('Device removed:', data.data);
+#   }
+# };
+
+# ==============================================================================
+# Performance Notes
+# ==============================================================================
+#
+# Scan Interval Guidelines:
+#   - Development: 10-30s (fast iteration)
+#   - Production: 5-10m (reduce CPU usage)
+#   - Kiosk/POS: 1-2m (balance responsiveness & performance)
+#
+# Resource Impact:
+#   - USB Discovery: Low CPU, no network, no disk
+#   - Serial Discovery: Medium CPU (protocol probing), no network
+#   - mDNS Discovery: Low CPU, low network, no disk
+#   - TCP Discovery: High CPU, high network (avoid in production)
+#
+# Optimization Tips:
+#   1. Disable unused transports
+#   2. Increase scan_interval for stable environments
+#   3. Reduce baud_rates list for serial discovery
+#   4. Limit mDNS services to what you actually use
+#
+# Security Considerations:
+#   - Set auto_register: false in production
+#   - Review discovered devices before registering
+#   - Use allowlists for vendor_id/product_id (future feature)
+#   - Monitor discovery events for unexpected devices

@@ -1,0 +1,285 @@
+# Payment Terminal Driver - Recording Rules
+# Version: 1.0
+# Last Updated: 2025-11-11
+#
+# Recording rules pre-compute frequently used queries to improve dashboard performance
+# and reduce query load on Prometheus
+
+groups:
+  # Transaction metrics aggregations
+  - name: payment_transaction_aggregations
+    interval: 30s
+    rules:
+      # Transaction rate by device and status
+      - record: payment:transaction_rate:device_status
+        expr: |
+          sum(rate(payment_transactions_total[5m])) by (device_id, status)
+
+      # Transaction rate by provider and status
+      - record: payment:transaction_rate:provider_status
+        expr: |
+          sum(rate(payment_transactions_total[5m])) by (provider, status)
+
+      # Transaction rate by type
+      - record: payment:transaction_rate:type
+        expr: |
+          sum(rate(payment_transactions_total[5m])) by (type)
+
+      # Overall transaction rate
+      - record: payment:transaction_rate:total
+        expr: |
+          sum(rate(payment_transactions_total[5m]))
+
+      # Success rate by device
+      - record: payment:success_rate:device
+        expr: |
+          sum(rate(payment_transactions_total{status="approved"}[5m])) by (device_id)
+          /
+          sum(rate(payment_transactions_total[5m])) by (device_id)
+
+      # Success rate by provider
+      - record: payment:success_rate:provider
+        expr: |
+          sum(rate(payment_transactions_total{status="approved"}[5m])) by (provider)
+          /
+          sum(rate(payment_transactions_total[5m])) by (provider)
+
+      # Overall success rate
+      - record: payment:success_rate:total
+        expr: |
+          sum(rate(payment_transactions_total{status="approved"}[5m]))
+          /
+          sum(rate(payment_transactions_total[5m]))
+
+  # Duration metrics
+  - name: payment_duration_aggregations
+    interval: 30s
+    rules:
+      # P50 duration by device
+      - record: payment:transaction_duration_p50:device
+        expr: |
+          histogram_quantile(0.50,
+            sum(rate(payment_transaction_duration_seconds_bucket[5m])) by (le, device_id)
+          )
+
+      # P95 duration by device
+      - record: payment:transaction_duration_p95:device
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(payment_transaction_duration_seconds_bucket[5m])) by (le, device_id)
+          )
+
+      # P99 duration by device
+      - record: payment:transaction_duration_p99:device
+        expr: |
+          histogram_quantile(0.99,
+            sum(rate(payment_transaction_duration_seconds_bucket[5m])) by (le, device_id)
+          )
+
+      # P95 duration by type
+      - record: payment:transaction_duration_p95:type
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(payment_transaction_duration_seconds_bucket[5m])) by (le, type)
+          )
+
+      # Average duration by device
+      - record: payment:transaction_duration_avg:device
+        expr: |
+          sum(rate(payment_transaction_duration_seconds_sum[5m])) by (device_id)
+          /
+          sum(rate(payment_transaction_duration_seconds_count[5m])) by (device_id)
+
+  # Error metrics
+  - name: payment_error_aggregations
+    interval: 30s
+    rules:
+      # Error rate by device
+      - record: payment:error_rate:device
+        expr: |
+          sum(rate(payment_errors_total[5m])) by (device_id)
+
+      # Error rate by type
+      - record: payment:error_rate:type
+        expr: |
+          sum(rate(payment_errors_total[5m])) by (error_type)
+
+      # Error rate by device and type
+      - record: payment:error_rate:device_type
+        expr: |
+          sum(rate(payment_errors_total[5m])) by (device_id, error_type)
+
+      # Total error rate
+      - record: payment:error_rate:total
+        expr: |
+          sum(rate(payment_errors_total[5m]))
+
+      # Error ratio (errors per transaction)
+      - record: payment:error_ratio:device
+        expr: |
+          sum(rate(payment_errors_total[5m])) by (device_id)
+          /
+          sum(rate(payment_transactions_total[5m])) by (device_id)
+
+  # Connection metrics
+  - name: payment_connection_aggregations
+    interval: 60s
+    rules:
+      # Total active connections
+      - record: payment:active_connections:total
+        expr: |
+          sum(payment_active_connections)
+
+      # Active connections by provider
+      - record: payment:active_connections:provider
+        expr: |
+          sum(payment_active_connections) by (provider)
+
+      # Connection failure rate
+      - record: payment:connection_failure_rate:total
+        expr: |
+          sum(rate(payment_connection_failures_total[5m]))
+
+      # Connection failure rate by device
+      - record: payment:connection_failure_rate:device
+        expr: |
+          sum(rate(payment_connection_failures_total[5m])) by (device_id)
+
+  # Settlement metrics
+  - name: payment_settlement_aggregations
+    interval: 60s
+    rules:
+      # Settlement rate
+      - record: payment:settlement_rate:total
+        expr: |
+          sum(rate(payment_settlements_total[1h]))
+
+      # Settlement success rate
+      - record: payment:settlement_success_rate:total
+        expr: |
+          sum(rate(payment_settlements_total{status="success"}[1h]))
+          /
+          sum(rate(payment_settlements_total[1h]))
+
+      # Average settlement duration
+      - record: payment:settlement_duration_avg:total
+        expr: |
+          sum(rate(payment_settlement_duration_seconds_sum[1h]))
+          /
+          sum(rate(payment_settlement_duration_seconds_count[1h]))
+
+  # Business metrics
+  - name: payment_business_aggregations
+    interval: 60s
+    rules:
+      # Transaction amount rate by currency
+      - record: payment:amount_rate:currency
+        expr: |
+          sum(rate(payment_transaction_amount_total[5m])) by (currency)
+
+      # Average transaction amount by currency
+      - record: payment:amount_avg:currency
+        expr: |
+          sum(rate(payment_transaction_amount_total[5m])) by (currency)
+          /
+          sum(rate(payment_transactions_total[5m])) by (currency)
+
+      # Transaction count by card scheme
+      - record: payment:transaction_count:card_scheme
+        expr: |
+          sum(increase(payment_transactions_total[1h])) by (card_scheme)
+
+      # Void rate by device
+      - record: payment:void_rate:device
+        expr: |
+          sum(rate(payment_transactions_total{type="void"}[30m])) by (device_id)
+          /
+          sum(rate(payment_transactions_total{type="sale"}[30m])) by (device_id)
+
+      # Refund rate by device
+      - record: payment:refund_rate:device
+        expr: |
+          sum(rate(payment_transactions_total{type="refund"}[1h])) by (device_id)
+          /
+          sum(rate(payment_transactions_total{type="sale"}[1h])) by (device_id)
+
+  # Hourly aggregations (for reporting)
+  - name: payment_hourly_aggregations
+    interval: 300s
+    rules:
+      # Hourly transaction count
+      - record: payment:transactions_per_hour:total
+        expr: |
+          sum(increase(payment_transactions_total[1h]))
+
+      # Hourly transaction count by device
+      - record: payment:transactions_per_hour:device
+        expr: |
+          sum(increase(payment_transactions_total[1h])) by (device_id)
+
+      # Hourly transaction count by provider
+      - record: payment:transactions_per_hour:provider
+        expr: |
+          sum(increase(payment_transactions_total[1h])) by (provider)
+
+      # Hourly approved transaction count
+      - record: payment:approved_transactions_per_hour:total
+        expr: |
+          sum(increase(payment_transactions_total{status="approved"}[1h]))
+
+      # Hourly declined transaction count
+      - record: payment:declined_transactions_per_hour:total
+        expr: |
+          sum(increase(payment_transactions_total{status="declined"}[1h]))
+
+      # Hourly error count
+      - record: payment:errors_per_hour:total
+        expr: |
+          sum(increase(payment_errors_total[1h]))
+
+      # Hourly transaction amount by currency
+      - record: payment:amount_per_hour:currency
+        expr: |
+          sum(increase(payment_transaction_amount_total[1h])) by (currency)
+
+  # SLI/SLO tracking
+  - name: payment_sli_slo
+    interval: 60s
+    rules:
+      # Availability SLI (successful transactions / total attempts)
+      - record: payment:sli:availability
+        expr: |
+          sum(rate(payment_transactions_total{status="approved"}[5m]))
+          /
+          sum(rate(payment_transactions_total[5m]))
+
+      # Latency SLI (% of transactions under 3 seconds)
+      - record: payment:sli:latency_fast
+        expr: |
+          sum(rate(payment_transaction_duration_seconds_bucket{le="3.0"}[5m]))
+          /
+          sum(rate(payment_transaction_duration_seconds_count[5m]))
+
+      # Error budget consumption rate (for 99.9% SLO)
+      - record: payment:slo:error_budget_consumption_rate
+        expr: |
+          (1 - payment:sli:availability) / 0.001
+
+  # Audit metrics
+  - name: payment_audit_aggregations
+    interval: 60s
+    rules:
+      # Audit event rate
+      - record: payment:audit_events_rate:total
+        expr: |
+          sum(rate(payment_audit_events_total[5m]))
+
+      # Audit event rate by type
+      - record: payment:audit_events_rate:type
+        expr: |
+          sum(rate(payment_audit_events_total[5m])) by (event_type)
+
+      # Audit error rate
+      - record: payment:audit_errors_rate:total
+        expr: |
+          sum(rate(payment_audit_errors_total[5m]))

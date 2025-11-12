@@ -1,0 +1,299 @@
+//go:build windows
+
+package printer_usb
+
+import (
+	"fmt"
+	"sync"
+	"time"
+
+	"github.com/google/gousb"
+)
+
+// windowsUSBDevice implements USBDevice for Windows using gousb
+//
+// NOTE: Requires WinUSB driver to be installed for the printer.
+// Use Zadig (https://zadig.akeo.ie/) to install WinUSB driver:
+//  1. Run Zadig as Administrator
+//  2. Options → List All Devices
+//  3. Select your printer from the list
+//  4. Select WinUSB driver from the dropdown
+//  5. Click "Replace Driver" or "Install Driver"
+//
+// WARNING: After installing WinUSB, the printer will no longer work
+// with Windows built-in printer drivers. This is intended for direct
+// ESC/POS communication, not standard Windows printing.
+type windowsUSBDevice struct {
+	device   *gousb.Device
+	intf     *gousb.Interface
+	outEp    *gousb.OutEndpoint // For sending print data
+	inEp     *gousb.InEndpoint  // For reading status (optional)
+	config   *gousb.Config
+
+	// Device info
+	vendorID  uint16
+	productID uint16
+	serial    string
+
+	// State
+	mu      sync.Mutex
+	timeout time.Duration
+	closed  bool
+}
+
+// findUSBPrinter finds and opens a USB ESC/POS printer on Windows
+func findUSBPrinter(config Config) (USBDevice, error) {
+	// Create USB context
+	ctx := gousb.NewContext()
+
+	// Find devices matching vendor/product ID or printer class
+	devs, err := ctx.OpenDevices(func(desc *gousb.DeviceDesc) bool {
+		// If specific vendor/product specified, match exactly
+		if config.VendorID != 0 {
+			return desc.Vendor == gousb.ID(config.VendorID) &&
+				desc.Product == gousb.ID(config.ProductID)
+		}
+
+		// Otherwise, match any USB Printer class device (0x07)
+		for _, cfg := range desc.Configs {
+			for _, intf := range cfg.Interfaces {
+				for _, setting := range intf.AltSettings {
+					if setting.Class == gousb.ClassPrinter {
+						return true
+					}
+				}
+			}
+		}
+		return false
+	})
+
+	if err != nil {
+		ctx.Close()
+		return nil, fmt.Errorf("failed to enumerate USB devices: %w", err)
+	}
+
+	if len(devs) == 0 {
+		ctx.Close()
+		return nil, fmt.Errorf("no matching USB printer found (ensure WinUSB driver is installed via Zadig)")
+	}
+
+	// Use first matching device
+	device := devs[0]
+
+	// Close other devices
+	for i := 1; i < len(devs); i++ {
+		devs[i].Close()
+	}
+
+	// Get device info
+	desc, err := device.Desc()
+	if err != nil {
+		device.Close()
+		ctx.Close()
+		return nil, fmt.Errorf("failed to get device descriptor: %w", err)
+	}
+
+	vendorID := uint16(desc.Vendor)
+	productID := uint16(desc.Product)
+
+	// Get serial number
+	serial, err := device.SerialNumber()
+	if err != nil {
+		serial = "" // Serial number is optional
+	}
+
+	// Check serial if specified
+	if config.Serial != "" && serial != config.Serial {
+		device.Close()
+		ctx.Close()
+		return nil, fmt.Errorf("device serial %s does not match requested %s", serial, config.Serial)
+	}
+
+	// Open default configuration (usually config 1)
+	cfg, err := device.Config(1)
+	if err != nil {
+		device.Close()
+		ctx.Close()
+		return nil, fmt.Errorf("failed to set configuration (WinUSB driver may not be installed): %w", err)
+	}
+
+	// Find printer interface
+	var printerInterface *gousb.Interface
+	var printerSetting gousb.InterfaceSetting
+
+	configDesc, err := device.ActiveConfigNum()
+	if err != nil {
+		cfg.Close()
+		device.Close()
+		ctx.Close()
+		return nil, fmt.Errorf("failed to get active config: %w", err)
+	}
+
+	cfgDesc := desc.Configs[configDesc-1]
+
+	for _, intf := range cfgDesc.Interfaces {
+		for _, setting := range intf.AltSettings {
+			if setting.Class == gousb.ClassPrinter {
+				printerInterface, err = cfg.Interface(intf.Number, setting.Alternate)
+				if err != nil {
+					continue
+				}
+				printerSetting = setting
+				break
+			}
+		}
+		if printerInterface != nil {
+			break
+		}
+	}
+
+	if printerInterface == nil {
+		cfg.Close()
+		device.Close()
+		ctx.Close()
+		return nil, fmt.Errorf("no printer interface found")
+	}
+
+	// Find bulk OUT endpoint (for sending print data)
+	var outEndpoint *gousb.OutEndpoint
+	var inEndpoint *gousb.InEndpoint
+
+	for _, endpoint := range printerSetting.Endpoints {
+		if endpoint.Direction == gousb.EndpointDirectionOut &&
+			endpoint.TransferType == gousb.TransferTypeBulk {
+			outEndpoint, err = printerInterface.OutEndpoint(endpoint.Number)
+			if err != nil {
+				continue
+			}
+		}
+		// Optional: bulk IN endpoint for reading status
+		if endpoint.Direction == gousb.EndpointDirectionIn &&
+			endpoint.TransferType == gousb.TransferTypeBulk {
+			inEndpoint, err = printerInterface.InEndpoint(endpoint.Number)
+			if err != nil {
+				// Status endpoint is optional
+				inEndpoint = nil
+			}
+		}
+	}
+
+	if outEndpoint == nil {
+		printerInterface.Close()
+		cfg.Close()
+		device.Close()
+		ctx.Close()
+		return nil, fmt.Errorf("no bulk OUT endpoint found")
+	}
+
+	timeout := config.Timeout
+	if timeout == 0 {
+		timeout = 5 * time.Second
+	}
+
+	return &windowsUSBDevice{
+		device:    device,
+		intf:      printerInterface,
+		outEp:     outEndpoint,
+		inEp:      inEndpoint,
+		config:    cfg,
+		vendorID:  vendorID,
+		productID: productID,
+		serial:    serial,
+		timeout:   timeout,
+	}, nil
+}
+
+// Write sends data to the printer
+func (d *windowsUSBDevice) Write(data []byte) (int, error) {
+	d.mu.Lock()
+	if d.closed {
+		d.mu.Unlock()
+		return 0, fmt.Errorf("device closed")
+	}
+	d.mu.Unlock()
+
+	// Write with timeout
+	n, err := d.outEp.WriteTimeout(data, d.timeout)
+	if err != nil {
+		return 0, fmt.Errorf("USB write error: %w", err)
+	}
+
+	return n, nil
+}
+
+// Read reads data from the printer (for status queries)
+func (d *windowsUSBDevice) Read(buffer []byte) (int, error) {
+	d.mu.Lock()
+	if d.closed {
+		d.mu.Unlock()
+		return 0, fmt.Errorf("device closed")
+	}
+	if d.inEp == nil {
+		d.mu.Unlock()
+		return 0, fmt.Errorf("printer does not support status read")
+	}
+	d.mu.Unlock()
+
+	// Read with timeout
+	n, err := d.inEp.ReadTimeout(buffer, d.timeout)
+	if err != nil {
+		return 0, fmt.Errorf("USB read error: %w", err)
+	}
+
+	return n, nil
+}
+
+// Close closes the USB device
+func (d *windowsUSBDevice) Close() error {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
+	if d.closed {
+		return nil
+	}
+
+	d.closed = true
+
+	// Close in reverse order
+	if d.outEp != nil {
+		d.outEp = nil
+	}
+
+	if d.inEp != nil {
+		d.inEp = nil
+	}
+
+	if d.intf != nil {
+		d.intf.Close()
+		d.intf = nil
+	}
+
+	if d.config != nil {
+		d.config.Close()
+		d.config = nil
+	}
+
+	if d.device != nil {
+		d.device.Close()
+		d.device = nil
+	}
+
+	return nil
+}
+
+// GetInfo returns device information
+func (d *windowsUSBDevice) GetInfo() (vendorID, productID uint16, serial string, err error) {
+	return d.vendorID, d.productID, d.serial, nil
+}
+
+// Reset resets the USB device
+func (d *windowsUSBDevice) Reset() error {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
+	if d.closed {
+		return fmt.Errorf("device closed")
+	}
+
+	return d.device.Reset()
+}

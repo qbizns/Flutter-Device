@@ -1,0 +1,188 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: device-bridge
+  namespace: device-bridge
+  labels:
+    app: device-bridge
+    version: v2.0
+    component: application
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+
+  selector:
+    matchLabels:
+      app: device-bridge
+
+  template:
+    metadata:
+      labels:
+        app: device-bridge
+        version: v2.0
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        prometheus.io/path: "/metrics"
+
+    spec:
+      # Service Account
+      serviceAccountName: device-bridge
+
+      # Security Context
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+
+      # Init Containers
+      initContainers:
+        - name: wait-for-config
+          image: busybox:latest
+          command: ['sh', '-c', 'until [ -f /etc/device-bridge/config.yaml ]; do echo waiting for config; sleep 2; done']
+          volumeMounts:
+            - name: config
+              mountPath: /etc/device-bridge
+
+      # Application Container
+      containers:
+        - name: device-bridge
+          image: device-bridge:v2.0
+          imagePullPolicy: IfNotPresent
+
+          # Ports
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+            - name: metrics
+              containerPort: 9090
+              protocol: TCP
+
+          # Environment Variables
+          env:
+            - name: DEVICE_BRIDGE_ENV
+              value: "production"
+            - name: LOG_LEVEL
+              value: "info"
+            - name: MADA_TERMINAL_ID
+              valueFrom:
+                secretKeyRef:
+                  name: payment-credentials
+                  key: mada-terminal-id
+            - name: MADA_MERCHANT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: payment-credentials
+                  key: mada-merchant-id
+            - name: MADA_AUTH_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: payment-credentials
+                  key: mada-auth-key
+            - name: KNET_TERMINAL_ID
+              valueFrom:
+                secretKeyRef:
+                  name: payment-credentials
+                  key: knet-terminal-id
+            - name: KNET_MERCHANT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: payment-credentials
+                  key: knet-merchant-id
+            - name: KNET_AUTH_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: payment-credentials
+                  key: knet-auth-key
+
+          # Volume Mounts
+          volumeMounts:
+            - name: config
+              mountPath: /etc/device-bridge
+              readOnly: true
+            - name: data
+              mountPath: /var/lib/device-bridge
+            - name: logs
+              mountPath: /var/log/device-bridge
+
+          # Resource Limits
+          resources:
+            requests:
+              cpu: 500m
+              memory: 256Mi
+            limits:
+              cpu: 2000m
+              memory: 512Mi
+
+          # Health Checks
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+
+          # Startup Probe
+          startupProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 0
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 12
+
+          # Security Context
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 1000
+            capabilities:
+              drop:
+                - ALL
+
+      # Volumes
+      volumes:
+        - name: config
+          configMap:
+            name: device-bridge-config
+        - name: data
+          persistentVolumeClaim:
+            claimName: device-bridge-data
+        - name: logs
+          emptyDir: {}
+
+      # Node Affinity (optional - for USB device access)
+      # affinity:
+      #   nodeAffinity:
+      #     requiredDuringSchedulingIgnoredDuringExecution:
+      #       nodeSelectorTerms:
+      #         - matchExpressions:
+      #             - key: hardware.usb
+      #               operator: In
+      #               values:
+      #                 - "true"
+
+      # Tolerations (optional)
+      # tolerations:
+      #   - key: "dedicated"
+      #     operator: "Equal"
+      #     value: "device-bridge"
+      #     effect: "NoSchedule"

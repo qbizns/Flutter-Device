@@ -1,0 +1,176 @@
+version: '3.8'
+
+# Device Bridge v2 - Docker Compose Configuration
+# Complete stack with monitoring
+
+services:
+  # Device Bridge Application
+  device-bridge:
+    image: device-bridge:latest
+    container_name: device-bridge
+    restart: unless-stopped
+
+    # Build configuration
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile
+
+    # Network configuration
+    ports:
+      - "8080:8080"   # API
+      - "9090:9090"   # Prometheus metrics
+      - "6060:6060"   # Profiling (development only)
+
+    # Environment variables
+    environment:
+      - DEVICE_BRIDGE_ENV=production
+      - LOG_LEVEL=info
+      # Payment providers (use secrets in production)
+      - MADA_TERMINAL_ID=${MADA_TERMINAL_ID}
+      - MADA_MERCHANT_ID=${MADA_MERCHANT_ID}
+      - MADA_AUTH_KEY=${MADA_AUTH_KEY}
+      - KNET_TERMINAL_ID=${KNET_TERMINAL_ID}
+      - KNET_MERCHANT_ID=${KNET_MERCHANT_ID}
+      - KNET_AUTH_KEY=${KNET_AUTH_KEY}
+
+    # Configuration and data volumes
+    volumes:
+      - ./config.yaml:/etc/device-bridge/config.yaml:ro
+      - device-bridge-data:/var/lib/device-bridge
+      - device-bridge-logs:/var/log/device-bridge
+
+    # USB device access (Linux only)
+    devices:
+      - /dev/bus/usb:/dev/bus/usb
+
+    # Privileges for USB access
+    privileged: false
+    cap_add:
+      - SYS_RAWIO
+
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+
+    # Health check
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+    # Logging
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+    # Dependencies
+    depends_on:
+      - prometheus
+      - grafana
+
+    networks:
+      - device-bridge-network
+
+  # Prometheus - Metrics collection
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    restart: unless-stopped
+
+    ports:
+      - "9091:9090"   # Expose on different port to avoid conflict
+
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./payment_alerts.yml:/etc/prometheus/payment_alerts.yml:ro
+      - ./payment_recording_rules.yml:/etc/prometheus/payment_recording_rules.yml:ro
+      - prometheus-data:/prometheus
+
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=15d'
+      - '--storage.tsdb.retention.size=50GB'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--web.enable-lifecycle'
+
+    networks:
+      - device-bridge-network
+
+  # Grafana - Metrics visualization
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    restart: unless-stopped
+
+    ports:
+      - "3000:3000"
+
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
+      - GF_INSTALL_PLUGINS=
+
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/payment-overview.json:/var/lib/grafana/dashboards/payment-overview.json:ro
+      - ./grafana/payment-transactions.json:/var/lib/grafana/dashboards/payment-transactions.json:ro
+
+    networks:
+      - device-bridge-network
+
+    depends_on:
+      - prometheus
+
+  # Alertmanager - Alert routing and management
+  alertmanager:
+    image: prom/alertmanager:latest
+    container_name: alertmanager
+    restart: unless-stopped
+
+    ports:
+      - "9093:9093"
+
+    volumes:
+      - ./alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - alertmanager-data:/alertmanager
+
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+
+    networks:
+      - device-bridge-network
+
+# Named volumes for data persistence
+volumes:
+  device-bridge-data:
+    driver: local
+  device-bridge-logs:
+    driver: local
+  prometheus-data:
+    driver: local
+  grafana-data:
+    driver: local
+  alertmanager-data:
+    driver: local
+
+# Network configuration
+networks:
+  device-bridge-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

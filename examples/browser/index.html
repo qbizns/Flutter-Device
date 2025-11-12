@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Device Bridge - Payment Terminal محطة الدفع</title>
+
+    <!-- Security Headers -->
+    <meta http-equiv="Content-Security-Policy"
+          content="default-src 'self';
+                   connect-src 'self' https://localhost:8080 wss://localhost:8080;
+                   script-src 'self' 'unsafe-inline';
+                   style-src 'self' 'unsafe-inline';">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        /* RTL Support */
+        [dir="rtl"] {
+            font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 500px;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .lang-switcher {
+            margin-top: 15px;
+        }
+
+        .lang-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 5px 15px;
+            margin: 0 5px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s;
+        }
+
+        .lang-btn.active {
+            background: white;
+            color: #667eea;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .result.success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+            display: block;
+        }
+
+        .result.error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+            display: block;
+        }
+
+        .receipt {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            white-space: pre-line;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .loader {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-left: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* RTL Styles */
+        [dir="rtl"] input,
+        [dir="rtl"] select {
+            text-align: right;
+        }
+
+        [dir="rtl"] .loader {
+            margin-left: 0;
+            margin-right: 10px;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        [dir="rtl"] .status-dot {
+            margin-right: 0;
+            margin-left: 8px;
+        }
+
+        .status-dot.connected {
+            background: #28a745;
+        }
+
+        .status-dot.disconnected {
+            background: #dc3545;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 id="headerTitle">Payment Terminal</h1>
+            <p id="headerSubtitle">Device Bridge v2.0</p>
+            <div class="lang-switcher">
+                <button class="lang-btn active" id="btnEn" onclick="switchLanguage('en')">English</button>
+                <button class="lang-btn" id="btnAr" onclick="switchLanguage('ar')">العربية</button>
+            </div>
+        </div>
+
+        <div class="content">
+            <div class="status-indicator" id="statusIndicator">
+                <div style="display: flex; align-items: center;">
+                    <span class="status-dot disconnected" id="statusDot"></span>
+                    <span id="statusText">Checking connection...</span>
+                </div>
+                <span id="deviceID">-</span>
+            </div>
+
+            <form id="paymentForm">
+                <div class="form-group">
+                    <label for="amount" id="labelAmount">Amount</label>
+                    <input type="number"
+                           id="amount"
+                           min="0.01"
+                           step="0.01"
+                           placeholder="100.00"
+                           required>
+                </div>
+
+                <div class="form-group">
+                    <label for="currency" id="labelCurrency">Currency</label>
+                    <select id="currency" required>
+                        <option value="SAR">SAR - Saudi Riyal ريال سعودي</option>
+                        <option value="KWD">KWD - Kuwaiti Dinar دينار كويتي</option>
+                        <option value="AED">AED - UAE Dirham درهم إماراتي</option>
+                        <option value="BHD">BHD - Bahraini Dinar دينار بحريني</option>
+                        <option value="QAR">QAR - Qatari Riyal ريال قطري</option>
+                        <option value="OMR">OMR - Omani Rial ريال عماني</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="transactionType" id="labelType">Transaction Type</label>
+                    <select id="transactionType" required>
+                        <option value="sale" id="optSale">Sale بيع</option>
+                        <option value="void" id="optVoid">Void إلغاء</option>
+                        <option value="refund" id="optRefund">Refund استرجاع</option>
+                    </select>
+                </div>
+
+                <button type="submit" class="btn" id="submitBtn">
+                    <span id="btnText">Process Payment</span>
+                </button>
+            </form>
+
+            <div class="result" id="result"></div>
+        </div>
+    </div>
+
+    <script src="payment-client.js"></script>
+    <script>
+        // Configuration
+        const config = {
+            baseURL: 'https://localhost:8080',
+            apiKey: 'dev-api-key-12345',
+            deviceID: 'payment-001',
+            language: 'en',
+        };
+
+        // Initialize client
+        let client = new PaymentClient(config);
+
+        // Translations
+        const translations = {
+            en: {
+                headerTitle: 'Payment Terminal',
+                headerSubtitle: 'Device Bridge v2.0',
+                labelAmount: 'Amount',
+                labelCurrency: 'Currency',
+                labelType: 'Transaction Type',
+                btnText: 'Process Payment',
+                processing: 'Processing...',
+                statusConnected: 'Connected',
+                statusDisconnected: 'Disconnected',
+                statusChecking: 'Checking connection...',
+                success: 'Payment Approved',
+                error: 'Payment Failed',
+                authCode: 'Auth Code',
+                transactionID: 'Transaction ID',
+            },
+            ar: {
+                headerTitle: 'محطة الدفع',
+                headerSubtitle: 'نظام الأجهزة 2.0',
+                labelAmount: 'المبلغ',
+                labelCurrency: 'العملة',
+                labelType: 'نوع المعاملة',
+                btnText: 'معالجة الدفع',
+                processing: 'جاري المعالجة...',
+                statusConnected: 'متصل',
+                statusDisconnected: 'غير متصل',
+                statusChecking: 'جاري الفحص...',
+                success: 'تمت الموافقة على الدفع',
+                error: 'فشل الدفع',
+                authCode: 'رمز التفويض',
+                transactionID: 'رقم المعاملة',
+            },
+        };
+
+        // Switch language
+        function switchLanguage(lang) {
+            const html = document.documentElement;
+            html.setAttribute('lang', lang);
+            html.setAttribute('dir', lang === 'ar' ? 'rtl' : 'ltr');
+
+            // Update button states
+            document.getElementById('btnEn').classList.toggle('active', lang === 'en');
+            document.getElementById('btnAr').classList.toggle('active', lang === 'ar');
+
+            // Update client language
+            client.setLanguage(lang);
+
+            // Update UI text
+            const t = translations[lang];
+            document.getElementById('headerTitle').textContent = t.headerTitle;
+            document.getElementById('headerSubtitle').textContent = t.headerSubtitle;
+            document.getElementById('labelAmount').textContent = t.labelAmount;
+            document.getElementById('labelCurrency').textContent = t.labelCurrency;
+            document.getElementById('labelType').textContent = t.labelType;
+            document.getElementById('btnText').textContent = t.btnText;
+        }
+
+        // Check device status
+        async function checkStatus() {
+            try {
+                const status = await client.getStatus();
+                document.getElementById('statusDot').classList.remove('disconnected');
+                document.getElementById('statusDot').classList.add('connected');
+                document.getElementById('statusText').textContent =
+                    translations[client.language].statusConnected;
+                document.getElementById('deviceID').textContent = config.deviceID;
+            } catch (error) {
+                document.getElementById('statusDot').classList.remove('connected');
+                document.getElementById('statusDot').classList.add('disconnected');
+                document.getElementById('statusText').textContent =
+                    translations[client.language].statusDisconnected;
+            }
+        }
+
+        // Handle form submission
+        document.getElementById('paymentForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const amount = parseFloat(document.getElementById('amount').value);
+            const currency = document.getElementById('currency').value;
+            const type = document.getElementById('transactionType').value;
+
+            const resultDiv = document.getElementById('result');
+            const submitBtn = document.getElementById('submitBtn');
+            const btnText = document.getElementById('btnText');
+
+            // Disable button and show loading
+            submitBtn.disabled = true;
+            btnText.innerHTML = translations[client.language].processing +
+                               '<span class="loader"></span>';
+            resultDiv.style.display = 'none';
+
+            try {
+                // Convert amount to minor units
+                const amountMinor = client.parseAmount(amount, currency);
+
+                // Process transaction
+                const response = await client.processTransaction({
+                    amount: amountMinor,
+                    currency: currency,
+                    type: type,
+                });
+
+                // Show success
+                const t = translations[client.language];
+                resultDiv.className = 'result success';
+                resultDiv.innerHTML = `
+                    <strong>✅ ${t.success}</strong><br><br>
+                    ${t.authCode}: <strong>${response.auth_code || 'N/A'}</strong><br>
+                    ${t.transactionID}: <strong>${response.transaction_id}</strong><br><br>
+                    <div class="receipt">${response.receipt_lines ? response.receipt_lines.join('\n') : ''}</div>
+                `;
+
+            } catch (error) {
+                // Show error
+                const t = translations[client.language];
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `
+                    <strong>❌ ${t.error}</strong><br><br>
+                    ${error.message}
+                `;
+            } finally {
+                // Re-enable button
+                submitBtn.disabled = false;
+                btnText.textContent = translations[client.language].btnText;
+            }
+        });
+
+        // Check status on load
+        checkStatus();
+
+        // Periodic status check
+        setInterval(checkStatus, 30000);  // Every 30 seconds
+    </script>
+</body>
+</html>

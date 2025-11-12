@@ -1,0 +1,157 @@
+# Payment Terminal Driver Configuration - Development Environment
+# Version: 1.0
+# Last Updated: 2025-11-11
+
+# Environment
+environment: development
+log_level: debug
+
+# Connection settings
+connection:
+  # Use simulator for development
+  use_simulator: true
+
+  # Connection timeouts (shorter for dev)
+  connect_timeout: 10s
+  read_timeout: 15s
+  write_timeout: 15s
+
+  # Retry configuration
+  max_retries: 3
+  retry_delay: 1s
+  retry_backoff: exponential
+  max_retry_delay: 10s
+
+  # Keep-alive
+  keep_alive: true
+  keep_alive_interval: 30s
+
+# TLS/SSL configuration (disabled for local dev)
+tls:
+  enabled: false
+  min_version: "1.2"
+  verify_server_cert: false
+
+# Transaction settings
+transaction:
+  # Default timeout for transactions
+  default_timeout: 30s
+
+  # Maximum transaction timeout
+  max_timeout: 60s
+
+  # Transaction amount limits (in minor currency units)
+  min_amount: 1
+  max_amount: 10000000  # 100,000.00
+
+  # Auto-void on failure (dev only)
+  auto_void_on_failure: true
+
+# Audit logging
+audit:
+  enabled: true
+
+  # Log to console in development
+  output: console
+
+  # Include all events (verbose for debugging)
+  log_all_events: true
+
+  # Card data masking (always enabled)
+  mask_card_data: true
+
+  # Retention (shorter in dev)
+  retention_days: 7
+
+  # Batch size for writing
+  batch_size: 10
+  flush_interval: 5s
+
+# Monitoring
+monitoring:
+  # Prometheus metrics
+  prometheus:
+    enabled: true
+    port: 9090
+    path: /metrics
+
+  # Health check endpoint
+  health_check:
+    enabled: true
+    port: 8080
+    path: /health
+
+  # Performance profiling (enabled in dev)
+  profiling:
+    enabled: true
+    port: 6060
+
+# Provider configurations
+providers:
+  # Mada (simulated)
+  mada:
+    enabled: true
+    terminal_id: "MADA_DEV_001"
+    merchant_id: "MADA_MERCHANT_DEV"
+    currency: "SAR"
+    min_amount: 100  # 1.00 SAR
+    max_amount: 10000000  # 100,000.00 SAR
+
+  # KNET (simulated)
+  knet:
+    enabled: true
+    terminal_id: "KNET_DEV_001"
+    merchant_id: "KNET_MERCHANT_DEV"
+    currency: "KWD"
+    min_amount: 100  # 0.100 KWD
+    max_amount: 10000000  # 10,000.000 KWD
+
+  # Generic simulator
+  simulator:
+    enabled: true
+    terminal_id: "SIM_DEV_001"
+    merchant_id: "SIMULATOR_DEV"
+    # Simulate various response codes
+    simulate_declines: true
+    decline_rate: 0.1  # 10% decline rate
+    simulate_timeouts: false
+
+# Settlement
+settlement:
+  # Auto-settlement disabled in dev
+  auto_settle: false
+
+  # Settlement time (not used when auto_settle is false)
+  settle_time: "23:00"
+
+  # Settlement timezone
+  timezone: "UTC"
+
+# Development-specific settings
+development:
+  # Enable debug endpoints
+  debug_endpoints: true
+
+  # Reload config on change
+  watch_config: true
+
+  # Verbose transaction logging
+  log_transaction_details: true
+
+  # Log ISO 8583 messages
+  log_iso8583_messages: true
+
+  # Disable rate limiting
+  rate_limiting: false
+
+  # Mock card numbers for testing
+  test_cards:
+    - number: "4111111111111111"  # Generic test card
+      scheme: "visa"
+      issuer: "test"
+    - number: "5200000000000000"  # Mada test card
+      scheme: "mada"
+      issuer: "test"
+    - number: "4200000000000000"  # KNET test card
+      scheme: "knet"
+      issuer: "test"

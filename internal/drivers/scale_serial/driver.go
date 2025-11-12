@@ -1,6 +1,7 @@
 package scale_serial
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"sync"
@@ -393,10 +394,209 @@ func createProtocol(name string) (Protocol, error) {
 		return NewMTSICSProtocol(), nil
 	case "cas":
 		return NewCASProtocol(), nil
+	case "dibal":
+		return NewDibalProtocol(), nil
+	case "toledo", "toledo8217", "toledo-8217":
+		return NewToledoProtocol(), nil
 	case "generic":
 		return NewGenericProtocol(), nil
+	case "auto":
+		// Auto-detection will be handled separately
+		return nil, fmt.Errorf("auto-detection requires reading from scale first")
 	default:
-		return nil, fmt.Errorf("unknown protocol: %s", name)
+		return nil, fmt.Errorf("unknown protocol: %s (supported: mtsics, cas, dibal, toledo, generic, auto)", name)
+	}
+}
+
+// DetectProtocol attempts to auto-detect the scale protocol from sample data
+//
+// This function analyzes the response format to determine which protocol the scale is using.
+// It returns the detected protocol and a confidence score (0.0-1.0).
+//
+// Detection Strategy:
+//   1. Check for MT-SICS format (command-response, specific status codes)
+//   2. Check for CAS format (STX/ETX with specific status bytes)
+//   3. Check for Dibal format (STX/ETX with +/- status)
+//   4. Check for Toledo format (continuous, specific status codes)
+//   5. Fall back to generic if nothing matches
+func DetectProtocol(data []byte) (Protocol, float64, error) {
+	if len(data) == 0 {
+		return nil, 0.0, fmt.Errorf("no data provided for protocol detection")
+	}
+
+	// Score for each protocol (higher = more confident)
+	scores := make(map[string]float64)
+
+	// Check for MT-SICS format
+	// Characteristics: CR/LF terminator, status codes (S, D, +, -, I, L), space-separated fields
+	if bytes.Contains(data, []byte("\r\n")) {
+		scores["mtsics"] += 0.3
+
+		// Check for MT-SICS specific status codes
+		if len(data) > 0 && (data[0] == 'S' || data[0] == 'D' || data[0] == 'I' || data[0] == 'L') {
+			scores["mtsics"] += 0.3
+
+			// Check for MT-SICS weight format (spaces between fields)
+			if bytes.Count(data, []byte(" ")) >= 2 {
+				scores["mtsics"] += 0.2
+			}
+		}
+
+		// Also check for Toledo (similar but different)
+		if len(data) > 0 && (data[0] == 'S' || data[0] == 'D' || data[0] == 'M' || data[0] == '?') {
+			scores["toledo"] += 0.4
+
+			// Toledo often has fixed-width format or specific spacing
+			if bytes.Count(data, []byte("  ")) >= 1 {
+				scores["toledo"] += 0.2
+			}
+		}
+	}
+
+	// Check for CAS format
+	// Characteristics: STX at start, ETX at end, status bytes (S, U, E)
+	if len(data) >= 3 && data[0] == 0x02 {
+		scores["cas"] += 0.4
+
+		// Find ETX
+		if bytes.Contains(data, []byte{0x03}) {
+			scores["cas"] += 0.3
+
+			// Check for CAS status bytes
+			if len(data) > 1 && (data[1] == 'S' || data[1] == 'U' || data[1] == 'E') {
+				scores["cas"] += 0.2
+			}
+		}
+	}
+
+	// Check for Dibal format
+	// Characteristics: STX at start, ETX at end, status bytes (+, -, O, U, E)
+	if len(data) >= 3 && data[0] == 0x02 {
+		scores["dibal"] += 0.3
+
+		// Find ETX
+		if bytes.Contains(data, []byte{0x03}) {
+			scores["dibal"] += 0.2
+
+			// Check for Dibal status bytes
+			if len(data) > 1 && (data[1] == '+' || data[1] == '-' || data[1] == 'O' || data[1] == 'U' || data[1] == 'E') {
+				scores["dibal"] += 0.4
+			}
+		}
+	}
+
+	// Find the highest scoring protocol
+	var bestProtocol string
+	var bestScore float64
+	for protocol, score := range scores {
+		if score > bestScore {
+			bestScore = score
+			bestProtocol = protocol
+		}
+	}
+
+	// If no clear winner, use generic
+	if bestScore < 0.5 {
+		bestProtocol = "generic"
+		bestScore = 0.3
+	}
+
+	// Create protocol instance
+	proto, err := createProtocol(bestProtocol)
+	if err != nil {
+		return NewGenericProtocol(), 0.3, err
+	}
+
+	return proto, bestScore, nil
+}
+
+// AutoDetectProtocol attempts to auto-detect the scale protocol by reading sample data
+//
+// This function opens the serial port temporarily, reads some data, and attempts to
+// detect the protocol. It's useful for "auto" protocol configuration.
+//
+// Parameters:
+//   - config: Serial port configuration (port, baud rate, etc.)
+//   - timeout: How long to wait for data (e.g., 3 seconds)
+//   - samples: Number of samples to collect for detection (e.g., 3-5)
+//
+// Returns the detected protocol, confidence score, and any error.
+func AutoDetectProtocol(config Config, timeout time.Duration, samples int) (Protocol, float64, error) {
+	// Open serial port temporarily
+	mode := &serial.Mode{
+		BaudRate: config.BaudRate,
+		DataBits: config.DataBits,
+		Parity:   parseParity(config.Parity),
+		StopBits: serial.StopBits(config.StopBits),
+	}
+
+	port, err := serial.Open(config.Port, mode)
+	if err != nil {
+		return nil, 0.0, fmt.Errorf("failed to open port for detection: %w", err)
+	}
+	defer port.Close()
+
+	// Set read timeout
+	if err := port.SetReadTimeout(timeout); err != nil {
+		return nil, 0.0, fmt.Errorf("failed to set read timeout: %w", err)
+	}
+
+	// Collect multiple samples
+	var allData []byte
+	var bestProtocol Protocol
+	var bestScore float64
+
+	for i := 0; i < samples; i++ {
+		// Read some data
+		buf := make([]byte, 256)
+		n, err := port.Read(buf)
+		if err != nil && err.Error() != "EOF" {
+			// If we already have some samples, continue
+			if i > 0 {
+				break
+			}
+			return nil, 0.0, fmt.Errorf("failed to read from port: %w", err)
+		}
+
+		if n > 0 {
+			sample := buf[:n]
+			allData = append(allData, sample...)
+
+			// Try to detect protocol from this sample
+			protocol, score, _ := DetectProtocol(sample)
+			if score > bestScore {
+				bestProtocol = protocol
+				bestScore = score
+			}
+		}
+
+		// Small delay between samples
+		time.Sleep(100 * time.Millisecond)
+	}
+
+	if bestProtocol == nil {
+		// Try detection on all combined data
+		protocol, score, err := DetectProtocol(allData)
+		if err != nil {
+			return nil, 0.0, fmt.Errorf("protocol detection failed: %w", err)
+		}
+		return protocol, score, nil
+	}
+
+	return bestProtocol, bestScore, nil
+}
+
+// parseParity converts a string parity value to serial.Parity
+func parseParity(parity string) serial.Parity {
+	switch parity {
+	case "none":
+		return serial.NoParity
+	case "even":
+		return serial.EvenParity
+	case "odd":
+		return serial.OddParity
+	default:
+		return serial.NoParity
 	}
 }
 

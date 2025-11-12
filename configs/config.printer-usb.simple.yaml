@@ -1,0 +1,44 @@
+# Simple USB Printer Configuration
+# ==================================
+# Quick-start configuration for common USB ESC/POS printers
+
+server:
+  grpc:
+    address: ":50051"
+  rest:
+    address: ":8080"
+
+security:
+  mode: "development"
+
+devices:
+
+  # Epson TM-T88V (Most Common Receipt Printer)
+  - id: main-printer
+    name: "Main Receipt Printer"
+    kind: printer.usb
+    enabled: true
+    metadata:
+      vendor_id: 0x04b8              # Epson
+      product_id: 0x0e15             # TM-T88V
+      timeout: 5000
+
+  # Star TSP650 (Kitchen/Order Printer)
+  # Uncomment to enable
+  # - id: kitchen-printer
+  #   name: "Kitchen Printer"
+  #   kind: printer.usb
+  #   enabled: true
+  #   metadata:
+  #     vendor_id: 0x0519            # Star Micronics
+  #     product_id: 0x0011           # TSP650
+  #     timeout: 5000
+
+# To find your printer's vendor_id and product_id:
+#
+# Linux:   lsusb
+# macOS:   system_profiler SPUSBDataType
+# Windows: Device Manager → Printer → Properties → Hardware IDs
+#
+# For detailed configuration options and troubleshooting,
+# see config.printer-usb.example.yaml

@@ -23,7 +23,8 @@ Device Bridge v2 supports serial scales from various manufacturers through a pro
 
 ### Key Features
 
-- **Multiple Protocol Support**: MT-SICS (Mettler Toledo), CAS (Korean manufacturer), and more
+- **Multiple Protocol Support**: MT-SICS (Mettler Toledo), CAS (Korean manufacturer), Dibal (Spanish retail), Toledo 8217 (legacy), and generic ASCII
+- **Auto-Protocol Detection**: Automatically detect which protocol your scale uses
 - **Auto-retry Logic**: Configurable retry attempts for reliable communication
 - **Unit Conversion**: Automatic conversion between g, kg, lb, oz, and more
 - **Stable Weight Detection**: Wait for stable readings before returning values
@@ -82,6 +83,95 @@ stop_bits: 1
 - CAS MW-II (Precision)
 - CAS LP (Platform scales)
 - Various generic CAS-compatible scales
+
+### Dibal Protocol
+
+**Manufacturers**: Dibal (Spain), various European retail scales
+
+**Configuration**:
+```yaml
+protocol: "dibal"
+baud_rate: 9600
+data_bits: 8
+parity: "none"
+stop_bits: 1
+```
+
+**Features**:
+- Continuous output mode (no commands required)
+- STX/ETX frame delimiters
+- Status indicators (+/- for stable/unstable)
+- Supports kg, g, lb, oz units
+- Optional checksum validation (D-900 series)
+- Configurable decimal places (0, 1, 2, or 3)
+
+**Common Models**:
+- Dibal D-900 Series (Retail)
+- Dibal D-955 (Retail with printer)
+- Dibal M-525 (Industrial)
+- Dibal K-280 (Compact retail)
+
+**Example Response Format**:
+```
+<STX>+00123kg<ETX>  # Stable, 1.23 kg
+<STX>-01500g<ETX>   # Unstable, 15.00 g
+<STX>O99999kg<ETX>  # Overload
+```
+
+### Toledo 8217 Protocol
+
+**Manufacturers**: Toledo (legacy), Mettler Toledo (older models)
+
+**Configuration**:
+```yaml
+protocol: "toledo"  # or "toledo8217" or "toledo-8217"
+baud_rate: 9600
+data_bits: 8
+parity: "none"
+stop_bits: 1
+```
+
+**Features**:
+- Continuous ASCII output (no commands required)
+- Fixed or variable width format
+- Status indicators (S/D/M/+/-/?)
+- Supports kg, g, lb, oz units
+- CR/LF line termination
+- Legacy protocol still used in many installations
+
+**Common Models**:
+- Toledo 8217 (legacy)
+- Toledo 8530 (legacy platform scale)
+- Older Mettler Toledo models (pre-MT-SICS)
+
+**Example Response Formats**:
+```
+S    123.45 kg\r\n      # Variable width, stable
+D     50.2 lb\r\n       # Variable width, dynamic
+S  00001234 kg\r\n      # Fixed width, 8-digit weight
+S M 123.45 kg\r\n       # With motion flag
+```
+
+### Generic Protocol
+
+**Manufacturers**: Various manufacturers with simple ASCII output
+
+**Configuration**:
+```yaml
+protocol: "generic"
+baud_rate: 9600
+data_bits: 8
+parity: "none"
+stop_bits: 1
+```
+
+**Features**:
+- Configurable weight format (regex-based)
+- Multiple line terminator support
+- Flexible unit parsing
+- Suitable for custom or uncommon scales
+
+**Use When**: Your scale doesn't match any of the above protocols but outputs simple ASCII text like "123.45 kg"
 
 ## Hardware Requirements
 

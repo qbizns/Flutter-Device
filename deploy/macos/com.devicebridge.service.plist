@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- Service Identity -->
+    <key>Label</key>
+    <string>com.devicebridge.service</string>
+
+    <key>Disabled</key>
+    <false/>
+
+    <!-- Program Configuration -->
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/local/bin/device-bridge</string>
+        <string>--config</string>
+        <string>/usr/local/etc/device-bridge/config.yaml</string>
+        <string>--log-level</string>
+        <string>info</string>
+    </array>
+
+    <!-- Working Directory -->
+    <key>WorkingDirectory</key>
+    <string>/usr/local/var/device-bridge</string>
+
+    <!-- User -->
+    <key>UserName</key>
+    <string>_devicebridge</string>
+
+    <key>GroupName</key>
+    <string>_devicebridge</string>
+
+    <!-- Auto-start Configuration -->
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>KeepAlive</key>
+    <dict>
+        <key>SuccessfulExit</key>
+        <false/>
+        <key>Crashed</key>
+        <true/>
+    </dict>
+
+    <!-- Process Type -->
+    <key>ProcessType</key>
+    <string>Interactive</string>
+
+    <!-- Restart Throttling -->
+    <key>ThrottleInterval</key>
+    <integer>10</integer>
+
+    <!-- Environment Variables -->
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+        <key>DEVICE_BRIDGE_ENV</key>
+        <string>production</string>
+    </dict>
+
+    <!-- Logging -->
+    <key>StandardOutPath</key>
+    <string>/usr/local/var/log/device-bridge/stdout.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/usr/local/var/log/device-bridge/stderr.log</string>
+
+    <!-- Resource Limits -->
+    <key>HardResourceLimits</key>
+    <dict>
+        <key>NumberOfFiles</key>
+        <integer>4096</integer>
+        <key>NumberOfProcesses</key>
+        <integer>256</integer>
+    </dict>
+
+    <key>SoftResourceLimits</key>
+    <dict>
+        <key>NumberOfFiles</key>
+        <integer>2048</integer>
+        <key>NumberOfProcesses</key>
+        <integer>128</integer>
+    </dict>
+
+    <!-- Security -->
+    <key>SessionCreate</key>
+    <false/>
+
+    <key>LimitLoadToSessionType</key>
+    <string>System</string>
+</dict>
+</plist>

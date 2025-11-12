@@ -1,0 +1,202 @@
+# Payment Terminal Driver Configuration - Staging Environment
+# Version: 1.0
+# Last Updated: 2025-11-11
+
+# Environment
+environment: staging
+log_level: info
+
+# Connection settings
+connection:
+  # Use real terminals in staging
+  use_simulator: false
+
+  # Staging terminal endpoints
+  host: staging-payment-terminal.example.com
+  port: 3000
+
+  # Connection timeouts
+  connect_timeout: 15s
+  read_timeout: 30s
+  write_timeout: 30s
+
+  # Retry configuration
+  max_retries: 5
+  retry_delay: 2s
+  retry_backoff: exponential
+  max_retry_delay: 30s
+
+  # Keep-alive
+  keep_alive: true
+  keep_alive_interval: 60s
+
+# TLS/SSL configuration
+tls:
+  enabled: true
+  min_version: "1.2"
+  verify_server_cert: true
+
+  # Certificate paths (staging certs)
+  cert_file: /etc/payment/certs/staging/client.crt
+  key_file: /etc/payment/certs/staging/client.key
+  ca_file: /etc/payment/certs/staging/ca.crt
+
+  # Certificate pinning (optional in staging)
+  pin_certificates: false
+
+# Transaction settings
+transaction:
+  # Default timeout for transactions
+  default_timeout: 45s
+
+  # Maximum transaction timeout
+  max_timeout: 90s
+
+  # Transaction amount limits (in minor currency units)
+  min_amount: 1
+  max_amount: 10000000  # 100,000.00
+
+  # Auto-void on failure (disabled in staging)
+  auto_void_on_failure: false
+
+# Audit logging
+audit:
+  enabled: true
+
+  # Log to file in staging
+  output: file
+  file_path: /var/log/payment/audit.log
+
+  # Log rotation
+  max_size: 100  # MB
+  max_backups: 30
+  max_age: 90  # days
+  compress: true
+
+  # Structured logging
+  format: json
+
+  # Card data masking (always enabled)
+  mask_card_data: true
+
+  # Include transaction details
+  include_transaction_details: true
+
+  # Retention
+  retention_days: 90
+
+  # Batch size for writing
+  batch_size: 50
+  flush_interval: 10s
+
+# Monitoring
+monitoring:
+  # Prometheus metrics
+  prometheus:
+    enabled: true
+    port: 9090
+    path: /metrics
+    include_go_metrics: true
+    include_process_metrics: true
+
+  # Health check endpoint
+  health_check:
+    enabled: true
+    port: 8080
+    path: /health
+    readiness_path: /health/ready
+    liveness_path: /health/live
+
+  # Performance profiling (disabled in staging)
+  profiling:
+    enabled: false
+
+  # Distributed tracing
+  tracing:
+    enabled: true
+    endpoint: http://jaeger-collector.staging:14268/api/traces
+    sampling_rate: 0.1  # 10% sampling
+
+  # Log aggregation
+  log_aggregation:
+    enabled: true
+    endpoint: http://logstash.staging:5044
+    format: json
+
+# Provider configurations
+providers:
+  # Mada (staging)
+  mada:
+    enabled: true
+    terminal_id: "${MADA_TERMINAL_ID}"  # From environment variable
+    merchant_id: "${MADA_MERCHANT_ID}"
+    currency: "SAR"
+    min_amount: 100  # 1.00 SAR
+    max_amount: 10000000  # 100,000.00 SAR
+
+    # Provider-specific settings
+    auth_key: "${MADA_AUTH_KEY}"
+    endpoint: "staging.mada.sa"
+
+  # KNET (staging)
+  knet:
+    enabled: true
+    terminal_id: "${KNET_TERMINAL_ID}"
+    merchant_id: "${KNET_MERCHANT_ID}"
+    currency: "KWD"
+    min_amount: 100  # 0.100 KWD
+    max_amount: 10000000  # 10,000.000 KWD
+
+    # Provider-specific settings
+    auth_key: "${KNET_AUTH_KEY}"
+    endpoint: "staging.knet.com.kw"
+
+# Settlement
+settlement:
+  # Auto-settlement enabled in staging
+  auto_settle: true
+
+  # Settlement time (23:00 local time)
+  settle_time: "23:00"
+
+  # Settlement timezone
+  timezone: "Asia/Riyadh"
+
+  # Retry failed settlements
+  retry_failed: true
+  max_settlement_retries: 3
+
+# Security
+security:
+  # Rate limiting
+  rate_limiting:
+    enabled: true
+    requests_per_second: 10
+    burst: 20
+
+  # Request timeout
+  request_timeout: 60s
+
+  # IP whitelisting (optional in staging)
+  ip_whitelist:
+    enabled: false
+
+  # Authentication
+  auth:
+    enabled: true
+    type: api_key
+    header: X-API-Key
+
+# Staging-specific settings
+staging:
+  # Debug endpoints (limited)
+  debug_endpoints: false
+
+  # Verbose logging for specific devices
+  verbose_logging_devices:
+    - "staging-test-01"
+    - "staging-test-02"
+
+  # Test mode indicators
+  test_mode_enabled: true
+  test_mode_header: "X-Test-Mode"

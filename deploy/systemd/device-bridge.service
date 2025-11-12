@@ -1,0 +1,62 @@
+# Device Bridge v2 - systemd Service Configuration
+# Linux deployment using systemd
+
+[Unit]
+Description=Device Bridge v2 - Hardware Device Integration Service
+Documentation=https://github.com/Macber-eg/Flutter-Device
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=devicebridge
+Group=devicebridge
+WorkingDirectory=/opt/device-bridge
+
+# Environment
+Environment="DEVICE_BRIDGE_ENV=production"
+Environment="DEVICE_BRIDGE_CONFIG=/etc/device-bridge/config.yaml"
+EnvironmentFile=-/etc/device-bridge/environment
+
+# Binary
+ExecStart=/usr/local/bin/device-bridge \
+    --config=${DEVICE_BRIDGE_CONFIG} \
+    --log-level=info
+
+# Restart policy
+Restart=on-failure
+RestartSec=5s
+StartLimitInterval=60s
+StartLimitBurst=3
+
+# Security hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/log/device-bridge /var/lib/device-bridge
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictRealtime=true
+RestrictNamespaces=true
+RestrictSUIDSGID=true
+LockPersonality=true
+
+# Resource limits
+LimitNOFILE=65535
+LimitNPROC=512
+MemoryLimit=512M
+CPUQuota=200%
+
+# Capabilities (for USB device access)
+# AmbientCapabilities=CAP_SYS_RAWIO
+# CapabilityBoundingSet=CAP_SYS_RAWIO
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=device-bridge
+
+[Install]
+WantedBy=multi-user.target

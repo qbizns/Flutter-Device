@@ -1,0 +1,395 @@
+# USB Printer Configuration Examples
+# ===================================
+#
+# This file contains comprehensive configuration examples for USB ESC/POS printers
+# with various manufacturers, models, and advanced options.
+
+# Server Configuration
+server:
+  grpc:
+    address: ":50051"
+  rest:
+    address: ":8080"
+  websocket:
+    path: "/ws"
+
+security:
+  mode: "development"  # Use "production" for real deployments
+
+# USB Printer Devices
+devices:
+
+  # ============================================================================
+  # Example 1: Epson TM-T88V (Most Common POS Printer)
+  # ============================================================================
+  # Epson TM-series is the industry standard for thermal receipt printers.
+  # The TM-T88V is widely used in retail and hospitality.
+
+  - id: epson-tm-t88v-01
+    name: "Epson TM-T88V Receipt Printer"
+    kind: printer.usb
+    enabled: true
+    metadata:
+      # USB Device Identification
+      vendor_id: 0x04b8              # Epson vendor ID
+      product_id: 0x0e15             # TM-T88V product ID
+      # serial: "ABC123"             # Optional: specify serial for multiple devices
+
+      # USB Configuration
+      timeout: 5000                  # USB timeout in milliseconds (default: 5000)
+      reconnect_delay: 5000          # Auto-reconnect delay in milliseconds
+
+      # Printer Capabilities
+      max_width: 48                  # Characters per line (48 for 80mm paper)
+      dpi: 203                       # Dots per inch (203 for TM-T88V)
+      supports_drawer: true          # Cash drawer support
+
+      # Application Metadata
+      location: "Register 1"
+      department: "Sales"
+
+  # ============================================================================
+  # Example 2: Epson TM-T20 (Budget Thermal Printer)
+  # ============================================================================
+  # TM-T20 is a popular entry-level thermal printer for small businesses.
+
+  - id: epson-tm-t20-01
+    name: "Epson TM-T20 Thermal Printer"
+    kind: printer.usb
+    enabled: true
+    metadata:
+      vendor_id: 0x04b8
+      product_id: 0x0e03
+      timeout: 5000
+      max_width: 48
+      dpi: 203
+      location: "Counter 1"
+
+  # ============================================================================
+  # Example 3: Star Micronics TSP650 (Dual Interface)
+  # ============================================================================
+  # Star TSP650 supports both USB and Ethernet, popular in restaurants.
+
+  - id: star-tsp650-01
+    name: "Star TSP650 Kitchen Printer"
+    kind: printer.usb
+    enabled: true
+    metadata:
+      vendor_id: 0x0519              # Star Micronics vendor ID
+      product_id: 0x0011             # TSP650 product ID
+      timeout: 5000
+      max_width: 48
+      dpi: 203
+      supports_drawer: true
+      location: "Kitchen"
+      printer_type: "kitchen"        # kitchen, receipt, label, etc.
+
+  # ============================================================================
+  # Example 4: Citizen CT-S310 (Compact Receipt Printer)
+  # ============================================================================
+  # Citizen CT-S310 is a compact thermal printer for space-constrained setups.
+
+  - id: citizen-cts310-01
+    name: "Citizen CT-S310 Compact Printer"
+    kind: printer.usb
+    enabled: true
+    metadata:
+      vendor_id: 0x2730              # Citizen vendor ID
+      product_id: 0x0fff             # CT-S310 product ID
+      timeout: 5000
+      max_width: 42                  # 42 characters for 58mm paper
+      dpi: 203
+      paper_width: 58                # 58mm paper width
+
+  # ============================================================================
+  # Example 5: Bixolon SRP-350plus (High Speed)
+  # ============================================================================
+  # Bixolon SRP-350plus is known for high-speed printing in busy environments.
+
+  - id: bixolon-srp350-01
+    name: "Bixolon SRP-350plus POS Printer"
+    kind: printer.usb
+    enabled: true
+    metadata:
+      vendor_id: 0x1504              # Bixolon vendor ID
+      product_id: 0x0011             # SRP-350plus product ID
+      timeout: 5000
+      max_width: 48
+      dpi: 180                       # Lower DPI but faster
+      supports_drawer: true
+      location: "Express Checkout"
+
+  # ============================================================================
+  # Example 6: Multiple Printers for Multi-Station Setup
+  # ============================================================================
+  # Configure multiple printers for different stations/departments.
+
+  # Front Desk Receipt Printer
+  - id: front-desk-printer
+    name: "Front Desk Receipt Printer"
+    kind: printer.usb
+    enabled: true
+    metadata:
+      vendor_id: 0x04b8
+      product_id: 0x0e15             # Epson TM-T88V
+      timeout: 5000
+      location: "Front Desk"
+      department: "Reception"
+      printer_type: "receipt"
+
+  # Kitchen Order Printer
+  - id: kitchen-printer-01
+    name: "Kitchen Order Printer #1"
+    kind: printer.usb
+    enabled: true
+    metadata:
+      vendor_id: 0x0519
+      product_id: 0x0011             # Star TSP650
+      serial: "KIT001"               # Distinguish from multiple Star printers
+      timeout: 5000
+      location: "Kitchen Station 1"
+      department: "Kitchen"
+      printer_type: "kitchen"
+
+  # Bar Order Printer
+  - id: bar-printer-01
+    name: "Bar Order Printer"
+    kind: printer.usb
+    enabled: true
+    metadata:
+      vendor_id: 0x0519
+      product_id: 0x0011             # Star TSP650
+      serial: "BAR001"               # Different serial number
+      timeout: 5000
+      location: "Bar"
+      department: "Beverage"
+      printer_type: "kitchen"
+
+  # ============================================================================
+  # Example 7: Label Printer (Different Use Case)
+  # ============================================================================
+  # Some ESC/POS printers are used for labels instead of receipts.
+
+  - id: label-printer-01
+    name: "Product Label Printer"
+    kind: printer.usb
+    enabled: true
+    metadata:
+      vendor_id: 0x04b8
+      product_id: 0x0e28             # Epson TM-T88VI
+      timeout: 5000
+      max_width: 48
+      location: "Shipping"
+      printer_type: "label"
+      auto_cut: true                 # Auto-cut after each label
+
+  # ============================================================================
+  # Example 8: Windows Configuration
+  # ============================================================================
+  # Windows requires WinUSB driver to be installed via Zadig.
+
+  - id: windows-printer-01
+    name: "Windows USB Printer"
+    kind: printer.usb
+    enabled: false                   # Disabled by default (enable on Windows)
+    metadata:
+      vendor_id: 0x04b8
+      product_id: 0x0e15
+      timeout: 5000
+      # NOTE: Windows requires WinUSB driver installation
+      # See docs/USB_PRINTER_SETUP.md for Zadig instructions
+
+  # ============================================================================
+  # Example 9: macOS Configuration
+  # ============================================================================
+  # macOS handles USB printers well with libusb.
+
+  - id: macos-printer-01
+    name: "macOS USB Printer"
+    kind: printer.usb
+    enabled: false                   # Disabled by default (enable on macOS)
+    metadata:
+      vendor_id: 0x04b8
+      product_id: 0x0e15
+      timeout: 5000
+      # macOS may require running as root or granting USB permissions
+
+  # ============================================================================
+  # Example 10: Generic ESC/POS Printer (Unknown Brand)
+  # ============================================================================
+  # Many Chinese manufacturers produce ESC/POS compatible printers.
+
+  - id: generic-printer-01
+    name: "Generic ESC/POS Printer"
+    kind: printer.usb
+    enabled: false
+    metadata:
+      vendor_id: 0x0000              # Replace with actual VID (use lsusb to find)
+      product_id: 0x0000             # Replace with actual PID
+      timeout: 5000
+      max_width: 48
+      # Most generic printers are ESC/POS compatible
+
+
+# ============================================================================
+# Supported Printer Models
+# ============================================================================
+#
+# Epson:
+#   - TM-T88II/III/IV/V/VI  (0x04b8:0x0202, 0x0005, 0x0e15, 0x0e28)
+#   - TM-T20/T20II/T20III   (0x04b8:0x0e03)
+#   - TM-U220               (0x04b8:0x0e01)
+#   - TM-H6000              (0x04b8:0x0e05)
+#
+# Star Micronics:
+#   - TSP100/143            (0x0519:0x0001)
+#   - TSP600/650/700        (0x0519:0x0003, 0x0011, 0x0017)
+#   - TSP800                (0x0519:0x001f)
+#
+# Citizen:
+#   - CT-S310/601/801       (0x2730:0x0fff, 0x2002, 0x200f)
+#   - CT-S4000              (0x2730:0x2008)
+#
+# Bixolon:
+#   - SRP-350/350plus       (0x1504:0x0006, 0x0011)
+#   - SRP-275               (0x1504:0x001d)
+#   - SRP-Q300              (0x1504:0x00a0)
+#
+# Custom/Seiko:
+#   - VKP80                 (0x0dd4:0x0101)
+#
+# Posiflex:
+#   - PP-8000               (0x0425:0x0101)
+#
+# Note: Most ESC/POS printers follow the same command set, so unlisted
+# models will likely work. Use lsusb (Linux), system_profiler (macOS),
+# or Device Manager (Windows) to find vendor_id and product_id.
+
+# ============================================================================
+# Finding USB Vendor ID and Product ID
+# ============================================================================
+#
+# Linux:
+#   lsusb
+#   # Output: Bus 001 Device 005: ID 04b8:0e15 Seiko Epson Corp. TM-T88V
+#   # vendor_id: 0x04b8, product_id: 0x0e15
+#
+# macOS:
+#   system_profiler SPUSBDataType
+#   # Look for "Vendor ID: 0x04b8" and "Product ID: 0x0e15"
+#
+# Windows:
+#   # Device Manager → Printers → Properties → Details → Hardware IDs
+#   # USB\VID_04B8&PID_0E15
+#   # vendor_id: 0x04b8, product_id: 0x0e15
+
+# ============================================================================
+# Platform-Specific Setup
+# ============================================================================
+#
+# Linux:
+#   1. Install libusb: sudo apt-get install libusb-1.0-0 libusb-1.0-0-dev
+#   2. Add udev rules for non-root access:
+#      sudo nano /etc/udev/rules.d/99-usb-printers.rules
+#      # Add: SUBSYSTEM=="usb", ATTR{idVendor}=="04b8", MODE="0666"
+#      sudo udevadm control --reload-rules
+#   3. Or add user to plugdev group:
+#      sudo usermod -a -G plugdev $USER
+#
+# macOS:
+#   1. Install libusb: brew install libusb
+#   2. May need to run as root or grant USB permissions in System Preferences
+#   3. Disable built-in printer drivers if they interfere:
+#      sudo launchctl unload -w /System/Library/LaunchDaemons/com.apple.printd.plist
+#
+# Windows:
+#   1. Download Zadig: https://zadig.akeo.ie/
+#   2. Run as Administrator
+#   3. Options → List All Devices
+#   4. Select your printer from dropdown
+#   5. Select "WinUSB" driver
+#   6. Click "Replace Driver" or "Install Driver"
+#   WARNING: After installing WinUSB, the printer won't work with Windows
+#   built-in printer drivers. This is for direct ESC/POS communication only.
+
+# ============================================================================
+# Troubleshooting
+# ============================================================================
+#
+# Problem: "No matching USB printer found"
+# Solutions:
+#   1. Verify printer is powered on and connected
+#   2. Check vendor_id and product_id with lsusb (Linux) or Device Manager (Windows)
+#   3. On Linux, check permissions (add user to plugdev group)
+#   4. On Windows, ensure WinUSB driver is installed via Zadig
+#   5. Try running as root/administrator to verify it's a permission issue
+#
+# Problem: "Failed to set configuration (WinUSB driver may not be installed)"
+# Solution: Windows only - install WinUSB driver using Zadig (see setup above)
+#
+# Problem: Printer prints garbled text
+# Solutions:
+#   1. Verify printer supports ESC/POS protocol
+#   2. Check if printer is in ESC/POS mode (some support multiple protocols)
+#   3. Try different character encoding in printer settings
+#   4. Update printer firmware
+#
+# Problem: Cash drawer not opening
+# Solutions:
+#   1. Verify supports_drawer: true is set
+#   2. Check drawer is properly connected to printer's RJ11/RJ12 port
+#   3. Test drawer manually (some printers have test button)
+#   4. Check drawer cable and connections
+#
+# Problem: Slow printing or timeouts
+# Solutions:
+#   1. Increase timeout value (e.g., 10000 for 10 seconds)
+#   2. Check USB cable quality (use shorter, high-quality cable)
+#   3. Avoid USB hubs - connect directly to computer
+#   4. Check printer buffer/memory settings
+#
+# Problem: "Device disconnected, will attempt reconnection"
+# Solutions:
+#   1. Check USB cable connection
+#   2. Try different USB port
+#   3. Check power supply (some printers draw significant power)
+#   4. Disable USB power management (Windows/Linux)
+#   5. Increase reconnect_delay if rapid reconnects are failing
+
+# ============================================================================
+# Testing Your Printer
+# ============================================================================
+#
+# 1. Start the bridge:
+#    ./bridge --config configs/config.printer-usb.example.yaml
+#
+# 2. List devices to verify printer is registered:
+#    bridge-cli devices list
+#
+# 3. Print test receipt (requires bridge-cli with print support):
+#    bridge-cli printer test <printer-id>
+#
+# 4. Open cash drawer:
+#    bridge-cli printer drawer <printer-id>
+#
+# 5. Query printer status:
+#    bridge-cli printer status <printer-id>
+
+# ============================================================================
+# ESC/POS Protocol Reference
+# ============================================================================
+#
+# The Device Bridge USB printer driver implements the ESC/POS command set,
+# which is the industry standard for POS thermal printers.
+#
+# Supported Features:
+#   - Text printing with various fonts and styles (bold, underline, inverse)
+#   - Size control (double width, double height)
+#   - Alignment (left, center, right)
+#   - 1D Barcodes (EAN13, EAN8, UPC-A, UPC-E, Code39, Code128, ITF, Codabar)
+#   - 2D QR Codes
+#   - Paper cutting (full cut, partial cut)
+#   - Cash drawer pulse
+#   - Status queries (online, paper present, drawer status)
+#
+# For complete API documentation, see docs/API.md
