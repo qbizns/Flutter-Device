@@ -15,10 +15,11 @@ import (
 // Driver implements ESC/POS printer driver
 type Driver struct {
 	*devices.BaseDevice
-	config Config
-	conn   net.Conn
-	mu     sync.Mutex
-	logger *telemetry.Logger
+	config       Config
+	conn         net.Conn
+	mu           sync.Mutex
+	logger       *telemetry.Logger
+	arabicShaper *ArabicShaper // Arabic text shaping engine
 }
 
 // Config contains ESC/POS printer configuration
@@ -40,9 +41,10 @@ func NewDriver(config Config, logger *telemetry.Logger) *Driver {
 	base := devices.NewBaseDevice(config.ID, "printer.escpos", config.Name, config.Metadata)
 
 	return &Driver{
-		BaseDevice: base,
-		config:     config,
-		logger:     logger.WithDeviceID(config.ID),
+		BaseDevice:   base,
+		config:       config,
+		logger:       logger.WithDeviceID(config.ID),
+		arabicShaper: NewArabicShaper(), // Initialize Arabic shaping engine
 	}
 }
 

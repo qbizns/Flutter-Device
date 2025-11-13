@@ -91,6 +91,25 @@ func (d *Driver) renderLine(buf *bytes.Buffer, line printer.Line) {
 
 // renderRun renders styled text
 func (d *Driver) renderRun(buf *bytes.Buffer, run printer.Run) {
+	// Check if text contains Arabic - if so, use specialized rendering
+	if ContainsArabic(run.Text) {
+		// Use Arabic shaper for proper text rendering
+		// The shaper handles code page, direction, styling, and shaping
+		textStyle := TextStyle{
+			Bold:         run.Style.Bold,
+			Underline:    run.Style.Underline,
+			DoubleWidth:  run.Style.DoubleWidth,
+			DoubleHeight: run.Style.DoubleHeight,
+		}
+
+		// Render Arabic text with proper shaping
+		// This handles all ESC/POS commands internally
+		arabicBytes := d.arabicShaper.RenderArabicText(run.Text, textStyle)
+		buf.Write(arabicBytes)
+		return
+	}
+
+	// Regular LTR text rendering
 	// Set bold
 	if run.Style.Bold {
 		buf.Write([]byte{0x1B, 0x45, 0x01}) // ESC E 1
