@@ -303,3 +303,19 @@ func convertToInterfaceSlice(devices []devices.Device) []interface{} {
 	}
 	return result
 }
+
+// weightUnitToProto converts internal weight unit to proto
+func weightUnitToProto(unit string) pb.WeightUnit {
+	switch unit {
+	case "kg":
+		return pb.WeightUnit_WEIGHT_UNIT_KG
+	case "g":
+		return pb.WeightUnit_WEIGHT_UNIT_G
+	case "lb":
+		return pb.WeightUnit_WEIGHT_UNIT_LB
+	case "oz":
+		return pb.WeightUnit_WEIGHT_UNIT_OZ
+	default:
+		return pb.WeightUnit_WEIGHT_UNIT_UNSPECIFIED
+	}
+}

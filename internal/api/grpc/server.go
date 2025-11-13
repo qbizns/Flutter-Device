@@ -6,10 +6,13 @@ import (
 
 	"github.com/Macber-eg/Flutter-Device/internal/app"
 	"github.com/Macber-eg/Flutter-Device/internal/devices/printer"
+	"github.com/Macber-eg/Flutter-Device/internal/devices/scale"
 	"github.com/Macber-eg/Flutter-Device/internal/events"
 	"github.com/Macber-eg/Flutter-Device/internal/jobs"
 	"github.com/Macber-eg/Flutter-Device/internal/telemetry"
 	pb "github.com/Macber-eg/Flutter-Device/proto/devicebridge/v1"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 // Server implements the DeviceBridge gRPC service
@@ -177,18 +180,29 @@ func (s *Server) GetWeight(ctx context.Context, req *pb.GetWeightRequest) (*pb.G
 	s.logger.Info("get weight request", telemetry.String("device_id", req.DeviceId))
 
 	// Get device
-	_, err := s.registry.Get(req.DeviceId)
+	device, err := s.registry.Get(req.DeviceId)
 	if err != nil {
-		return nil, fmt.Errorf("device not found: %w", err)
+		return nil, status.Errorf(codes.NotFound, "device not found: %v", err)
 	}
 
-	// TODO: Implement scale reading
-	// For now, return placeholder
+	// Type assert to scale.Scale interface
+	scaleDevice, ok := device.(scale.Scale)
+	if !ok {
+		return nil, status.Errorf(codes.InvalidArgument, "device %s is not a scale (kind: %s)", req.DeviceId, device.Kind())
+	}
+
+	// Read weight from scale driver
+	reading, err := scaleDevice.ReadWeight(ctx)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to read weight from scale: %v", err)
+	}
+
+	// Convert to protobuf response
 	return &pb.GetWeightResponse{
 		Reading: &pb.WeightReading{
-			Weight:    0.0,
-			Unit:      pb.WeightUnit_WEIGHT_UNIT_KG,
-			Stable:    false,
+			Weight:    reading.Weight,
+			Unit:      weightUnitToProto(string(reading.Unit)),
+			Stable:    reading.Stable,
 			Timestamp: timestampNow(),
 		},
 	}, nil
@@ -198,6 +212,23 @@ func (s *Server) GetWeight(ctx context.Context, req *pb.GetWeightRequest) (*pb.G
 func (s *Server) ZeroScale(ctx context.Context, req *pb.ZeroScaleRequest) (*pb.ZeroScaleResponse, error) {
 	s.logger.Info("zero scale request", telemetry.String("device_id", req.DeviceId))
 
+	// Get device
+	device, err := s.registry.Get(req.DeviceId)
+	if err != nil {
+		return nil, status.Errorf(codes.NotFound, "device not found: %v", err)
+	}
+
+	// Type assert to scale.Scale interface
+	scaleDevice, ok := device.(scale.Scale)
+	if !ok {
+		return nil, status.Errorf(codes.InvalidArgument, "device %s is not a scale (kind: %s)", req.DeviceId, device.Kind())
+	}
+
+	// Zero the scale
+	if err := scaleDevice.Zero(ctx); err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to zero scale: %v", err)
+	}
+
 	return &pb.ZeroScaleResponse{
 		Success: true,
 	}, nil
@@ -206,6 +237,23 @@ func (s *Server) ZeroScale(ctx context.Context, req *pb.ZeroScaleRequest) (*pb.Z
 // TareScale tares the scale
 func (s *Server) TareScale(ctx context.Context, req *pb.TareScaleRequest) (*pb.TareScaleResponse, error) {
 	s.logger.Info("tare scale request", telemetry.String("device_id", req.DeviceId))
+
+	// Get device
+	device, err := s.registry.Get(req.DeviceId)
+	if err != nil {
+		return nil, status.Errorf(codes.NotFound, "device not found: %v", err)
+	}
+
+	// Type assert to scale.Scale interface
+	scaleDevice, ok := device.(scale.Scale)
+	if !ok {
+		return nil, status.Errorf(codes.InvalidArgument, "device %s is not a scale (kind: %s)", req.DeviceId, device.Kind())
+	}
+
+	// Tare the scale
+	if err := scaleDevice.Tare(ctx); err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to tare scale: %v", err)
+	}
 
 	return &pb.TareScaleResponse{
 		Success: true,
