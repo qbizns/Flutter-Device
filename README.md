@@ -4,8 +4,8 @@
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Go Version](https://img.shields.io/badge/go-1.22%2B-blue.svg)](https://golang.org/dl/)
-[![Status](https://img.shields.io/badge/status-mvp--complete-brightgreen.svg)](IMPLEMENTATION_STATUS.md)
-[![Progress](https://img.shields.io/badge/progress-100%25-brightgreen.svg)](IMPLEMENTATION_STATUS.md)
+[![Status](https://img.shields.io/badge/status-65%25_production_ready-yellow.svg)](GAPS.md)
+[![Progress](https://img.shields.io/badge/progress-in_development-yellow.svg)](IMPLEMENTATION_PLAN.md)
 
 ---
 
@@ -15,39 +15,42 @@ Device Bridge v2 is a local or network microservice that acts as a **unified har
 
 **Core Philosophy:** Clients never talk to hardware directly. They communicate with Device Bridge via a stable, versioned API.
 
-**Current Status:** ✅ Phase 3 Production Hardening - Week 5 Complete (see [Quick Start](QUICKSTART.md) | [14-Week Completion Plan](14_WEEK_COMPLETION_PLAN.md) | [Progress Tracker](PROGRESS_TRACKER.md))
+**Current Status:** 🟡 **65% Production-Ready** - Core drivers working, critical gaps in Arabic support and hardware validation
 
-**Phase 1 MVP (100% ✅):**
-- ✅ Complete infrastructure (config, logging, metrics)
-- ✅ Job scheduler & queue with workers
-- ✅ Event bus (pub/sub system)
-- ✅ Device registry with health monitoring
-- ✅ ESC/POS printer driver (TCP transport)
-- ✅ Virtual printer for testing
-- ✅ gRPC API server (all 14 RPC methods)
-- ✅ Full type converters
-- ✅ Production-ready main daemon
+**⚠️ Important**: See [GAPS.md](GAPS.md) for known limitations before deploying to production.
 
-**Phase 2 Progress (90% ✅):**
-- ✅ REST/JSON API gateway (grpc-gateway)
-- ✅ Swagger UI for API documentation
-- ✅ CORS support for browser clients
-- ✅ WebSocket server for real-time events
-- ✅ Browser test clients (scanner, payment)
-- ✅ Virtual scanner (auto-scan every 15s)
-- ✅ Virtual scale (auto-weight every 5s, zero/tare)
-- ✅ Virtual display (2-line customer display)
-- ✅ Virtual drawer (auto-close after 5s)
-- ✅ Auto-discovery framework (TCP scanner)
-- ✅ Security features (mTLS, ACL, API Auth)
-- ✅ CLI administration tool (bridge-cli)
-- ✅ ZPL label printer driver with templates
-- ✅ CI/CD pipeline (GitHub Actions)
-- ✅ Docker containerization
-- ⏳ Comprehensive unit/integration tests
-- ⏳ Additional documentation
+### ✅ What's Production-Ready (65%)
 
-🎯 **Ready to use!** See [QUICKSTART.md](QUICKSTART.md)
+**Excellent Components** (90%+):
+- ✅ **Payment Terminal Driver** - ISO 8583, Mada/KNET, 253 lines of Arabic i18n, audit logging
+- ✅ **Serial Scale Driver** - 5 protocols (Mettler, Dibal, CAS, Toledo, Generic), now with working GetWeight!
+- ✅ **Security** - TLS/mTLS, ACL, API key authentication
+- ✅ **Observability** - Prometheus metrics, Grafana dashboards, structured logging
+- ✅ **API Layer** - gRPC, REST gateway, WebSocket (most methods implemented)
+- ✅ **Flutter SDK** - Comprehensive Dart SDK with widgets and example app
+
+**Working Components** (70-90%):
+- ✅ **ESC/POS TCP Printer** - Text, barcodes, QR codes, formatting (**BUT: No Arabic support**)
+- ✅ **ZPL Label Printer** - Full ZPL support, barcodes, templates
+- ✅ **USB HID Scanner** - Platform-specific implementations (Linux/Windows/macOS)
+- ✅ **Infrastructure** - Config, logging, job queue, event bus, device registry
+
+### ❌ Critical Gaps (35%)
+
+**Blockers for Production** (see [GAPS.md](GAPS.md)):
+- ❌ **Arabic ESC/POS Printing** - Text shaping not implemented (3 weeks to fix)
+- ⚠️ **Customer Display** - Minimal placeholder implementation
+- 🔴 **Hardware Validation** - Tests exist but not run on real devices (2 weeks + hardware)
+- ⚠️ **USB/Serial ESC/POS** - Only TCP transport complete
+- ❌ **Receipt History** - Re-print feature not implemented
+
+**See Full Details**:
+- [GAPS.md](GAPS.md) - Complete list of limitations with evidence
+- [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) - 10-week roadmap to 95% complete
+- [ACCEPTANCE_CHECKLIST_VALIDATION.md](ACCEPTANCE_CHECKLIST_VALIDATION.md) - Detailed validation report
+
+🎯 **Best For**: English-only POS, payment terminals, scales, scanners
+🚫 **Not Ready For**: Arabic receipts, USB printers, customer displays
 
 ---
 
@@ -66,26 +69,32 @@ Device Bridge v2 is a local or network microservice that acts as a **unified har
 
 ## Supported Devices
 
-### Phase 1 (MVP) - Real Hardware Support
+**Legend**: ✅ Production-Ready | ⚠️ Partial | ❌ Not Implemented | 🔴 Not Tested
 
-| Device Type | Protocols | Transports | Status |
-|-------------|-----------|------------|--------|
-| ESC/POS Printers | ESC/POS | USB, Serial, TCP | Planned |
-| Kitchen Printers | ESC/POS | USB, Serial, TCP | Planned |
-| Label Printers | ZPL, EPL, CPCL | USB, Serial, TCP | Planned |
-| Barcode Scanners | HID, Serial | USB (HID/Serial), RS-232 | Planned |
-| Scales | Dibal, Mettler, CAS | Serial, USB-Serial | Planned |
-| Customer Displays | Generic Serial | RS-232, USB-Serial | Planned |
-| Cash Drawers | ESC/POS Pulse | Via Printer | Planned |
-| Payment Terminals | Mada/KNET/Benefit | TCP/IP, Serial | Planned |
-| Virtual Devices | All | Software | Planned |
+| Device Type | Protocols | Transports | Status | Notes |
+|-------------|-----------|------------|--------|-------|
+| **ESC/POS Printers** | ESC/POS | TCP ✅ / USB ❌ / Serial ❌ | ⚠️ 70% | TCP works, **no Arabic**, no USB/Serial |
+| **ZPL Label Printers** | ZPL II | TCP ✅ / USB ⚠️ | ✅ 95% | Barcodes, QR codes, templates |
+| **Barcode Scanners** | USB HID | USB (HID) ✅ | ✅ 90% | Platform-specific (Linux/Win/Mac) |
+| **Scales** | Mettler, Dibal, CAS, Toledo, Generic | Serial ✅ | ✅ 95% | 5 protocols, GetWeight fixed! |
+| **Payment Terminals** | ISO 8583 | TCP ✅ / Serial ❌ | ✅ 98% | Mada ✅, KNET ✅, Arabic i18n ✅ |
+| **Customer Displays** | Generic Serial | RS-232, USB-Serial | ❌ 30% | Placeholder implementation |
+| **Cash Drawers** | ESC/POS Pulse | Via Printer | ✅ 85% | Works through ESC/POS driver |
+| **RFID Readers** | Various | USB ✅ | ✅ 90% | Multiple protocol support |
+| **Access Control** | Various | TCP/Serial | ✅ 90% | Decision engine, event logging |
+| **Badge Printers** | Zebra | USB ✅ | ✅ 90% | Card designer, templates |
+| **Virtual Devices** | All | Software | ✅ 100% | Testing infrastructure |
 
-### Phase 2 (Future)
+**Hardware Validation**: 🔴 Most drivers not tested with real hardware yet (see [docs/HARDWARE_MATRIX.md](docs/HARDWARE_MATRIX.md))
 
-- RFID/NFC Readers
-- Magstripe Card Readers
-- Ticket/Badge Printers
-- GPIO/Signalling Devices
+### Planned (Future)
+
+- Image printing in ESC/POS
+- USB/Serial transports for ESC/POS
+- Magstripe card readers
+- Kitchen display systems (KDS)
+- GPIO/signaling devices
+- Additional payment providers (Benefit, etc.)
 
 ---
 
