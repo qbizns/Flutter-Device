@@ -25,6 +25,7 @@ require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/creack/goselect v0.1.2 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
+	github.com/go-text/typesetting v0.3.0 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/magiconair/properties v1.8.7 // indirect
