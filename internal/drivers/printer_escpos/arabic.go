@@ -123,53 +123,29 @@ func DetectTextDirection(text string) TextDirection {
 	return DirectionLTR
 }
 
-// SplitIntoRuns splits text into runs of consistent direction
-// This is a simplified BiDi algorithm implementation
-// For production, consider using golang.org/x/text/unicode/bidi
+// SplitIntoRuns splits text into directional runs using enhanced BiDi algorithm
+// This now uses the full bidirectional algorithm from bidi.go
 func SplitIntoRuns(text string) []TextRun {
 	if text == "" {
 		return nil
 	}
 
-	var runs []TextRun
-	runes := []rune(text)
-	currentRun := TextRun{
-		Start: 0,
-	}
-	currentIsArabic := false
+	// Detect base direction
+	baseDir := DetectTextDirection(text)
 
-	for i, r := range runes {
-		isArabic := isArabicCharacter(r)
+	// Use enhanced BiDi analyzer for proper run splitting
+	bidiRuns := AnalyzeBiDi(text, baseDir)
 
-		if i == 0 {
-			// First character - start new run
-			currentIsArabic = isArabic
-			currentRun.Direction = DirectionLTR
-			if isArabic {
-				currentRun.Direction = DirectionRTL
-			}
-		} else if isArabic != currentIsArabic {
-			// Direction changed - finish current run and start new one
-			currentRun.End = i
-			currentRun.Text = string(runes[currentRun.Start:currentRun.End])
-			runs = append(runs, currentRun)
-
-			// Start new run
-			currentRun = TextRun{
-				Start:     i,
-				Direction: DirectionLTR,
-			}
-			if isArabic {
-				currentRun.Direction = DirectionRTL
-			}
-			currentIsArabic = isArabic
+	// Convert BiDiRun to TextRun
+	runs := make([]TextRun, len(bidiRuns))
+	for i, brun := range bidiRuns {
+		runs[i] = TextRun{
+			Text:      brun.Text,
+			Direction: brun.Direction,
+			Start:     brun.Start,
+			End:       brun.End,
 		}
 	}
-
-	// Add final run
-	currentRun.End = len(runes)
-	currentRun.Text = string(runes[currentRun.Start:currentRun.End])
-	runs = append(runs, currentRun)
 
 	return runs
 }
