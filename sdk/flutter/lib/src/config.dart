@@ -29,6 +29,9 @@ class DeviceBridgeConfig {
   /// Custom headers for all requests
   final Map<String, String>? headers;
 
+  /// Enable device interaction logging
+  final bool enableDeviceLogging;
+
   /// Maximum number of retry attempts for failed requests
   final int maxRetries;
 
@@ -46,16 +49,19 @@ class DeviceBridgeConfig {
     this.headers,
     this.maxRetries = 3,
     this.retryDelay = const Duration(seconds: 1),
+    this.enableDeviceLogging = true,
   });
 
   /// Create configuration for local development
   factory DeviceBridgeConfig.local({
     int port = 8080,
     bool debug = true,
+    bool enableDeviceLogging = true,
   }) {
     return DeviceBridgeConfig(
       baseUrl: 'http://localhost:$port',
       debug: debug,
+      enableDeviceLogging: enableDeviceLogging,
       timeout: const Duration(seconds: 30),
     );
   }
@@ -65,6 +71,7 @@ class DeviceBridgeConfig {
     required String host,
     String? apiKey,
     bool useTls = true,
+    bool enableDeviceLogging = true,
   }) {
     final scheme = useTls ? 'https' : 'http';
     return DeviceBridgeConfig(
@@ -72,6 +79,7 @@ class DeviceBridgeConfig {
       apiKey: apiKey,
       useTls: useTls,
       debug: false,
+      enableDeviceLogging: enableDeviceLogging,
       timeout: const Duration(seconds: 30),
     );
   }
@@ -109,6 +117,7 @@ class DeviceBridgeConfig {
     Map<String, String>? headers,
     int? maxRetries,
     Duration? retryDelay,
+    bool? enableDeviceLogging,
   }) {
     return DeviceBridgeConfig(
       baseUrl: baseUrl ?? this.baseUrl,
@@ -121,6 +130,7 @@ class DeviceBridgeConfig {
       headers: headers ?? this.headers,
       maxRetries: maxRetries ?? this.maxRetries,
       retryDelay: retryDelay ?? this.retryDelay,
+      enableDeviceLogging: enableDeviceLogging ?? this.enableDeviceLogging,
     );
   }
 
@@ -130,7 +140,8 @@ class DeviceBridgeConfig {
         'baseUrl: $baseUrl, '
         'useTls: $useTls, '
         'timeout: $timeout, '
-        'debug: $debug'
+        'debug: $debug, '
+        'enableDeviceLogging: $enableDeviceLogging'
         ')';
   }
 
@@ -145,7 +156,8 @@ class DeviceBridgeConfig {
         other.useTls == useTls &&
         other.apiKey == apiKey &&
         other.timeout == timeout &&
-        other.debug == debug;
+        other.debug == debug &&
+        other.enableDeviceLogging == enableDeviceLogging;
   }
 
   @override
@@ -158,6 +170,7 @@ class DeviceBridgeConfig {
       apiKey,
       timeout,
       debug,
+      enableDeviceLogging,
     );
   }
 }

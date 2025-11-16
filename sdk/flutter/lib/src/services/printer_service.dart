@@ -1,6 +1,8 @@
 import '../client.dart';
 import '../exceptions.dart';
 import '../models/printer_models.dart';
+import '../logging/device_log_entry.dart';
+import '../logging/device_interaction_logger.dart';
 
 /// Service for interacting with ESC/POS thermal printers
 ///
@@ -78,12 +80,63 @@ class PrinterService {
   /// final result = await printer.print(job);
   /// ```
   Future<PrintResult> print(PrintJob job) async {
-    final response = await _client.post(
-      '/v1/devices/$deviceId/printer/print',
-      body: job.toJson(),
-    );
+    String? errorMessage;
+    PrintResult? result;
 
-    return PrintResult.fromJson(response);
+    try {
+      final response = await _client.post(
+        '/v1/devices/$deviceId/printer/print',
+        body: job.toJson(),
+      );
+
+      result = PrintResult.fromJson(response);
+
+      // Log the print interaction
+      await _logPrintInteraction(
+        result,
+        _extractPrintContent(job),
+        copies: job.options?.copies,
+      );
+
+      return result;
+    } catch (e) {
+      errorMessage = e.toString();
+
+      // Log failed print interaction
+      if (result != null) {
+        await _logPrintInteraction(
+          result,
+          _extractPrintContent(job),
+          copies: job.options?.copies,
+          errorMessage: errorMessage,
+        );
+      }
+
+      rethrow;
+    }
+  }
+
+  /// Extract print content from job for logging
+  String _extractPrintContent(PrintJob job) {
+    final buffer = StringBuffer();
+    for (final element in job.elements) {
+      if (element is TextElement) {
+        buffer.writeln(element.text);
+      } else if (element is BarcodeElement) {
+        buffer.writeln('[BARCODE: ${element.data}]');
+      } else if (element is QRCodeElement) {
+        buffer.writeln('[QR CODE: ${element.data}]');
+      } else if (element is ImageElement) {
+        buffer.writeln('[IMAGE]');
+      } else if (element is LineFeedElement) {
+        // Skip line feeds in content extraction
+      } else if (element is CutElement) {
+        buffer.writeln('[CUT]');
+      } else if (element is OpenDrawerElement) {
+        buffer.writeln('[OPEN DRAWER]');
+      }
+    }
+    return buffer.toString();
   }
 
   /// Prints raw text with minimal formatting
@@ -108,6 +161,33 @@ class PrinterService {
     );
 
     return print(job);
+  }
+
+  /// Log a print interaction
+  Future<void> _logPrintInteraction(
+    PrintResult result,
+    String content, {
+    int? copies,
+    String? errorMessage,
+  }) async {
+    try {
+      final logger = _client.deviceLogger;
+      if (logger != null && logger.isEnabled) {
+        final logEntry = PrinterLogEntry(
+          id: DeviceInteractionLogger.generateId(),
+          timestamp: DateTime.now(),
+          deviceId: deviceId,
+          jobId: result.jobId ?? 'unknown',
+          content: content,
+          copies: copies,
+          success: errorMessage == null,
+          errorMessage: errorMessage,
+        );
+        await logger.log(logEntry);
+      }
+    } catch (e) {
+      // Silently fail logging to not disrupt main operations
+    }
   }
 
   /// Prints a receipt using the builder pattern
