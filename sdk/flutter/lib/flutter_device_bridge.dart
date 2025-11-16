@@ -39,6 +39,7 @@ library flutter_device_bridge;
 // Core client
 export 'src/client.dart';
 export 'src/config.dart';
+export 'src/env_config.dart';
 
 // Services
 export 'src/services/printer_service.dart';
@@ -65,6 +66,10 @@ export 'src/widgets/access_control_widget.dart';
 
 // Exceptions
 export 'src/exceptions.dart';
+
+// Device Interaction Logging
+export 'src/logging/device_interaction_logger.dart';
+export 'src/logging/device_log_entry.dart';
 
 // Utilities
 export 'src/utils/logger.dart';

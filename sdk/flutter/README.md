@@ -15,6 +15,8 @@ The Flutter Device Bridge SDK provides type-safe, idiomatic Dart/Flutter interfa
 - ✅ **Comprehensive**: Supports 6 major hardware categories with 60+ operations
 - ✅ **Production Ready**: Error handling, retries, and timeout support
 - ✅ **Flutter Widgets**: Pre-built UI components for common operations
+- ✅ **Device Logging**: Automatic logging with on/off toggle for audit trails
+- ✅ **Environment Configuration**: .env file support for easy configuration
 
 ## Supported Hardware
 
@@ -44,26 +46,65 @@ flutter pub get
 
 ## Quick Start
 
-### 1. Initialize the Client
+### 1. Setup Environment Configuration
+
+Copy the example environment file:
+
+```bash
+cd sdk/flutter
+cp .env.example .env
+```
+
+Edit `.env` to configure your Device Bridge connection:
+
+```env
+# Device Bridge Configuration
+DEVICE_BRIDGE_BASE_URL=http://localhost:8080
+DEVICE_BRIDGE_DEBUG=true
+
+# Device Interaction Logging (ON/OFF)
+DEVICE_LOGGING_ENABLED=true
+PRINTER_LOGGING_ENABLED=true
+SCANNER_LOGGING_ENABLED=true
+```
+
+### 2. Initialize in Your App
 
 ```dart
+import 'package:flutter/material.dart';
 import 'package:flutter_device_bridge/flutter_device_bridge.dart';
 
-// For local development
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize environment configuration
+  await EnvConfig.initialize();
+
+  runApp(MyApp());
+}
+```
+
+### 3. Initialize the Client
+
+```dart
+// Using environment configuration
+final client = DeviceBridgeClient(
+  baseUrl: EnvConfig.baseUrl,
+  debug: EnvConfig.debug,
+  enableDeviceLogging: EnvConfig.deviceLoggingEnabled,
+);
+
+// Or configure manually
 final client = DeviceBridgeClient(
   baseUrl: 'http://localhost:8080',
   debug: true,
-);
-
-// For production
-final client = DeviceBridgeClient(
-  baseUrl: 'https://your-device-bridge-server.com',
-  apiKey: 'your-api-key',
-  useTls: true,
+  enableDeviceLogging: true,
 );
 ```
 
-### 2. Use Hardware Services
+### 4. Use Hardware Services
+
+> **Note:** All device interactions are automatically logged when enabled. Logs are saved in device-specific formats (TXT for receipts, CSV for scans/weights/transactions).
 
 #### Print a Receipt
 
@@ -88,6 +129,9 @@ final receipt = ReceiptBuilder()
 
 final result = await printer.print(receipt);
 print('Print job: ${result.jobId}');
+
+// Receipt is automatically logged to:
+// device_logs/receipts/printer-01_2025-11-16.txt
 ```
 
 #### Scan a Barcode
@@ -103,6 +147,9 @@ final result = await scanner.scan(
   ),
 );
 print('Scanned: ${result.data}');
+
+// Scan is automatically logged to:
+// device_logs/scans/scanner-01_2025-11-16.csv
 
 // Continuous scanning with events
 await for (final event in scanner.subscribeScans()) {
@@ -251,6 +298,68 @@ DeviceStatusWidget(
   ),
 )
 ```
+
+## Device Interaction Logging
+
+All device interactions can be automatically logged for audit trails, debugging, and compliance:
+
+### Features
+
+- **Multiple Formats**: TXT for receipts, CSV for structured data, JSON for APIs
+- **Per-Device Control**: Enable/disable logging for specific device types
+- **Automatic Rotation**: Files rotated based on size limits
+- **Log Retention**: Configurable retention periods and cleanup
+- **Privacy-Friendly**: Completely disable when not needed
+
+### Configuration
+
+```env
+# Enable/disable all logging
+DEVICE_LOGGING_ENABLED=true
+
+# Per-device type settings
+PRINTER_LOGGING_ENABLED=true
+PRINTER_LOG_FORMAT=txt
+PRINTER_LOG_PATH=device_logs/receipts
+
+SCANNER_LOGGING_ENABLED=true
+SCANNER_LOG_FORMAT=csv
+SCANNER_LOG_PATH=device_logs/scans
+
+# Log retention
+LOG_MAX_FILE_SIZE_MB=10
+LOG_RETENTION_DAYS=30
+```
+
+### Accessing Logs
+
+```dart
+final logger = await DeviceInteractionLogger.getInstance();
+
+// Get log files for a device
+final files = await logger.getLogFilesForDevice('printer-01');
+
+// Get log directory
+final dir = await logger.getLogDirectoryForType(DeviceInteractionType.scan);
+print('Logs at: ${dir.path}');
+
+// Clear logs
+await logger.clearLogsForDevice('scanner-01');
+await logger.clearAllLogs();
+```
+
+### Log Formats
+
+| Device Type | Format | Example |
+|-------------|--------|---------|
+| Printer | TXT | Full receipt content, human-readable |
+| Scanner | CSV | Timestamp, barcode data, symbology |
+| Scale | CSV | Timestamp, weight, unit |
+| RFID | CSV | Timestamp, card UID, type, operation |
+| Access Control | CSV | Timestamp, door, credential, result |
+| Payment | CSV | Timestamp, transaction details |
+
+For complete logging documentation, see [LOGGING.md](./LOGGING.md).
 
 ## Advanced Usage
 

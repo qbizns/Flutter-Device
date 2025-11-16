@@ -34,6 +34,16 @@ dependencies:
   # Logging
   logging: ^1.2.0
 
+  # Environment variables
+  flutter_dotenv: ^5.1.0
+
+  # File I/O and path manipulation
+  path_provider: ^2.1.0
+  path: ^1.8.3
+
+  # UUID generation
+  uuid: ^4.0.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -50,7 +60,8 @@ dev_dependencies:
   flutter_lints: ^3.0.0
 
 flutter:
-  # No assets for SDK
+  assets:
+    - .env
 
 # Publishing configuration
 publish_to: none  # Remove this when ready to publish to pub.dev

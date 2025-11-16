@@ -4,6 +4,7 @@ import 'package:logging/logging.dart';
 
 import 'config.dart';
 import 'exceptions.dart';
+import 'logging/device_interaction_logger.dart';
 import 'services/printer_service.dart';
 import 'services/scanner_service.dart';
 import 'services/rfid_reader_service.dart';
@@ -40,6 +41,9 @@ class DeviceBridgeClient {
   /// Logger
   final Logger _logger;
 
+  /// Device interaction logger
+  DeviceInteractionLogger? _deviceLogger;
+
   /// Create a new Device Bridge client
   ///
   /// [config] - Configuration for the client
@@ -50,6 +54,7 @@ class DeviceBridgeClient {
     bool useTls = false,
     Duration timeout = const Duration(seconds: 30),
     bool debug = false,
+    bool enableDeviceLogging = true,
     Map<String, String>? headers,
     http.Client? httpClient,
   })  : config = DeviceBridgeConfig(
@@ -58,6 +63,7 @@ class DeviceBridgeClient {
           useTls: useTls,
           timeout: timeout,
           debug: debug,
+          enableDeviceLogging: enableDeviceLogging,
           headers: headers,
         ),
         _httpClient = httpClient ?? http.Client(),
@@ -68,6 +74,7 @@ class DeviceBridgeClient {
         print('${record.level.name}: ${record.time}: ${record.message}');
       });
     }
+    _initializeDeviceLogger();
   }
 
   /// Create a client with custom configuration
@@ -82,7 +89,23 @@ class DeviceBridgeClient {
         print('${record.level.name}: ${record.time}: ${record.message}');
       });
     }
+    _initializeDeviceLogger();
   }
+
+  /// Initialize device interaction logger
+  void _initializeDeviceLogger() {
+    if (config.enableDeviceLogging) {
+      DeviceInteractionLogger.getInstance().then((logger) {
+        _deviceLogger = logger;
+        _logger.info('Device interaction logger initialized');
+      }).catchError((error) {
+        _logger.warning('Failed to initialize device logger: $error');
+      });
+    }
+  }
+
+  /// Get device logger (for use by services)
+  DeviceInteractionLogger? get deviceLogger => _deviceLogger;
 
   // ========================================
   // Service Accessors

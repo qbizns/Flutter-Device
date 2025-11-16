@@ -6,6 +6,8 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 import '../client.dart';
 import '../exceptions.dart';
 import '../models/scanner_models.dart';
+import '../logging/device_log_entry.dart';
+import '../logging/device_interaction_logger.dart';
 
 /// Service for interacting with barcode/QR scanners
 ///
@@ -73,14 +75,57 @@ class ScannerService {
   /// }
   /// ```
   Future<ScanResult> scan({ScanOptions? options}) async {
-    final body = options?.toJson() ?? {};
+    String? errorMessage;
+    ScanResult? result;
 
-    final response = await _client.post(
-      '/v1/devices/$deviceId/scanner/scan',
-      body: body,
-    );
+    try {
+      final body = options?.toJson() ?? {};
 
-    return ScanResult.fromJson(response);
+      final response = await _client.post(
+        '/v1/devices/$deviceId/scanner/scan',
+        body: body,
+      );
+
+      result = ScanResult.fromJson(response);
+
+      // Log the scan interaction
+      await _logScanInteraction(result);
+
+      return result;
+    } catch (e) {
+      errorMessage = e.toString();
+
+      // Log failed scan interaction
+      if (result != null) {
+        await _logScanInteraction(result, errorMessage: errorMessage);
+      }
+
+      rethrow;
+    }
+  }
+
+  /// Log a scan interaction
+  Future<void> _logScanInteraction(
+    ScanResult result, {
+    String? errorMessage,
+  }) async {
+    try {
+      final logger = _client.deviceLogger;
+      if (logger != null && logger.isEnabled) {
+        final logEntry = ScannerLogEntry(
+          id: DeviceInteractionLogger.generateId(),
+          timestamp: result.timestamp ?? DateTime.now(),
+          deviceId: deviceId,
+          barcodeData: result.data,
+          symbology: result.symbology?.name ?? 'unknown',
+          success: errorMessage == null,
+          errorMessage: errorMessage,
+        );
+        await logger.log(logEntry);
+      }
+    } catch (e) {
+      // Silently fail logging to not disrupt main operations
+    }
   }
 
   /// Starts continuous scanning mode
